@@ -1,2 +1,3 @@
-# ketamuskolar_amiga
+# KETAMUSKOLAR - AMIGA
+
 Sixth Amiga Intro!
