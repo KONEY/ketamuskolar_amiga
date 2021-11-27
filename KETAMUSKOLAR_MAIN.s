@@ -19,7 +19,7 @@ bpl_real	EQU w/16*2
 vbarwbpl	EQU w/10/16
 X_SPLIT_SLICE	EQU 18
 X_SPLIT2X_SLICE	EQU 13
-TXT_FRMSKIP 	EQU 3
+TXT_FRMSKIP 	EQU 4
 ;*************
 ;CLR.W	$100		; DEBUG | w 0 100 2
 ;********** Demo **********		; Demo-specific non-startup code below.
@@ -190,6 +190,12 @@ MainLoop:
 	.SkipJoyActions:
 	; **** JOYSTICK TEST ****
 
+	;CLR.W	$200				; DEBUG | w 0 200 2
+	;MOVE.W	MED_TRK_2_COUNT,D0
+	;MOVE.W	MED_BLOCK_LINE,D1
+	;MOVE.W	AUDIOCHLEV_3,D2	; FLASH KICK
+	;MOVE.W	MED_SONG_POS,D3
+
 	SONG_BLOCKS_EVENTS:
 	;* FOR TIMED EVENTS ON BLOCK ****
 	MOVE.L	#$FFFFFFFF,BLTAFWM	; THEY'LL NEVER
@@ -202,7 +208,7 @@ MainLoop:
 	;*--- main loop end ---*
 
 	BSR.W	__FILLANDSCROLLTXT
-
+	;MOVE.W	$DFF006,$DFF180	; show rastertime left down to $12c
 	ENDING_CODE:
 	BTST	#6,$BFE001
 	BNE.S	.DontShowRasterTime
@@ -221,7 +227,7 @@ MainLoop:
 	MOVE.B	D5,X_FULL_DIR
 	;MOVE.W	#-1,BLIT_A_MOD
 	.DontShowRasterTime:
-	;MOVE.W	$DFF006,$DFF180	; show rastertime left down to $12c
+
 	BTST	#2,$DFF016	; POTINP - RMB pressed?
 	BNE.W	MainLoop		; then loop
 	;*--- exit ---*
@@ -338,7 +344,7 @@ __SET_MED_VISUALS:
 	MOVEQ	#$F,D0		; maxvalue
 	SUB.W	(A0)+,D0		; -#frames/irqs since instrument trigger
 	BPL.S	.ok		; below minvalue?
-	MOVEQ	#0,D0		; then set to minvalue
+	MOVEQ	#$0,D0		; then set to minvalue
 	MOVE.W	D0,(A3)		; RESET TWO BYTES (INST+NOTE)
 	.ok:
 	MOVE.W	D0,(A2)+		; LEVEL VALUE TO USE IN CODE
@@ -349,69 +355,68 @@ __SET_MED_VISUALS:
 	LEA	2(A3),A3
 	DBF	D7,.loop
 
-	ADDQ.W	#1,MED_TRK_0_COUNT	; inc elapsed #calls since last
-	ADDQ.W	#1,MED_TRK_1_COUNT
-	ADDQ.W	#1,MED_TRK_2_COUNT
-	ADDQ.W	#1,MED_TRK_3_COUNT
+	ADDQ.W	#$1,MED_TRK_0_COUNT	; inc elapsed #calls since last
+	ADDQ.W	#$1,MED_TRK_1_COUNT
+	ADDQ.W	#$1,MED_TRK_2_COUNT
+	ADDQ.W	#$1,MED_TRK_3_COUNT
 	MOVE.W	MED_STEPSEQ_POS,D0
 	ANDI.W	#$F,D0
 	MOVE.W	D0,MED_STEPSEQ_POS
 	RTS
 
 __FILLANDSCROLLTXT:
+	MOVE.L	#$0,D2
+	MOVE.L	D2,D6
 	MOVE.W	FRAMESINDEX,D7
 	CMPI.W	#TXT_FRMSKIP,D7	; TXT_FRMSKIP
 	BNE.W	.skip
-	LEA	FOOTER_END,A4
+	LEA	FOOTER,A4
 	LEA	FONT,A5
 	LEA	TEXT,A3
-	SUB.W	#(bpl*9)-1,A4	; POSITIONING
+	ADD.W	#bpl*3+1,A4
 	ADD.W	TEXTINDEX,A3
 	CMP.L	#_TEXT-1,A3	; Siamo arrivati all'ultima word della TAB?
 	BNE.S	.proceed
-	MOVE.W	#0,TEXTINDEX	; Riparti a puntare dalla prima word
+	MOVE.W	#$0,TEXTINDEX	; Riparti a puntare dalla prima word
 	LEA	TEXT,A3		; FIX FOR GLITCH (I KNOW IT'S FUN... :)
 	.proceed:
 	MOVE.B	(A3),D2		; Prossimo carattere in d2
 	SUBI.B	#$20,D2		; TOGLI 32 AL VALORE ASCII DEL CARATTERE, IN
-	MULU.W	#8,D2		; MOLTIPLICA PER 8 IL NUMERO PRECEDENTE,
+	MULU.W	#$7,D2		; MOLTIPLICA PER 8 IL NUMERO PRECEDENTE,
+	ADD.W	#$1,D2
 	ADD.W	D2,A5
-	MOVEQ	#0,D6		; RESET D6
-	MOVE.B	#8-1,D6
+	MOVE.B	#$5,D6
 	.loop:
-	ADD.W	#bpl-2,A4		; POSITIONING
 	MOVE.B	(A5)+,(A4)+
-	MOVE.B	#%00000000,(A4)+	; WRAPS MORE NICELY?
-	DBRA	D6,.loop
-	ADD.W	#bpl*2-2,A2	; POSITIONING
+	MOVE.B	#$0,(A4)+	; WRAPS MORE NICELY?
 	ADD.W	#bpl*2-2,A4	; POSITIONING
-	MOVE.B	#%00000000,(A4)	; WRAPS MORE NICELY?
+	DBRA	D6,.loop
 	.skip:
-	SUBI.W	#1,D7
-	CMPI.W	#0,D7
+	SUBI.W	#$1,D7
+	CMPI.W	#$0,D7
 	BEQ.W	.RESET
 	MOVE.W	D7,FRAMESINDEX
 	BRA.S	.shifttext
 	.reset:
-	ADDI.W	#1,TEXTINDEX
-	MOVE.W	#3,D7
+	ADDI.W	#$1,TEXTINDEX
+	MOVE.W	#TXT_FRMSKIP,D7
 	MOVE.W	D7,FRAMESINDEX	; OTTIMIZZABILE
 
 	.shifttext:
-	BSR.W	WaitBlitter
+	;RTS
 	LEA	FOOTER_END,A2
 	LEA	FOOTER_END,A4
-	SUB.W	#bpl,A2
-	SUB.W	#bpl,A4
-	MOVE.L	#$FFFFFFFF,BLTAFWM
-	;MOVE.W	#$FFFF,BLTALWM
+	SUB.W	#bpl*7,A2
+	SUB.W	#bpl*7,A4
+	BSR.W	WaitBlitter
 	MOVE.W	#%0010100111110000,BLTCON0
 	MOVE.W	#%0000000000000010,BLTCON1
-	MOVE.W	#0,BLTAMOD
-	MOVE.W	#0,BLTDMOD
+	MOVE.L	#$FFFFFFFF,BLTAFWM
+	MOVE.W	#$0,BLTAMOD
+	MOVE.W	#$0,BLTDMOD
 	MOVE.L	A2,BLTAPTH
 	MOVE.L	A4,BLTDPTH
-	MOVE.W	#5*64+(w+16)/16,BLTSIZE
+	MOVE.W	#6*64+(w*2+16)/16,BLTSIZE
 	RTS
 
 __BLIT_GLITCH_SLICE:
@@ -1830,7 +1835,13 @@ __BLK_GLITCH:
 
 __BLK_0_PRE:
 	MOVE.L	#$01800333,COPPER\.Palette		; ALWAYS RESET COPPER BG ?
+	CLR.W	$200				; DEBUG | w 0 200 2
+	MOVE.W	MED_TRK_1_COUNT,D0
+
 	MOVE.W	MED_BLOCK_LINE,D1
+
+	MOVE.W	AUDIOCHLEV_1,D2	; FLASH KICK
+
 	CMP.W	#4,D1
 	BGE.S	__BLK_0
 	LEA	COLORSEQ1,A1
@@ -2235,11 +2246,12 @@ KONEY:
 	DC.L %11001011111011001011111000110000
 
 FONT:		DC.L 0,0		; SPACE CHAR
-		INCBIN "scroller_font.raw",0
+		;INCBIN "scroller_font.raw",0
+		INCBIN "nintendo_font.raw",0
 		EVEN
 TEXT:		INCLUDE "textscroller.i"
 		INCLUDE "med/MED_PlayRoutine.i"
-;#######################################################
+	;#######################################################
 	SECTION	ChipData,DATA_C		;declared data that must be in chipmem
 MED_MODULE:	INCBIN "med/KETAMUSkOLAR_2020FIX2.med"
 _chipzero:	DC.L 0
@@ -2342,6 +2354,6 @@ BLEED3:		DS.B 32*bpl
 ;PLANE4:		DS.B h*bpl	; FOR 5 BITPLANES?
 BUFFERDITHER:	DS.B h*bpl	; two buffers
 HEADER:		DS.B 12*bpl
-FOOTER:		DS.B 11*bpl*2
-FOOTER_END:	DS.B 10*bpl	; ??
+FOOTER:		DS.B 11*bpl*2	; HI-RES
+FOOTER_END:	DS.B 0	; ??
 END

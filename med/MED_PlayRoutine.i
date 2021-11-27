@@ -918,14 +918,6 @@ _IntHandler:	movem.l	d2-d7/a2-a6,-(sp)
 	IFEQ	CIAB|VBLANK
 		lea	DB,a6			;don't expect a1 to contain DB address
 	ENDC
-	;IFNE	INSTR_TRACKING
-		;MOVE.W	#$0FFF,$DFF180		; show rastertime left down to $12c
-		;CLR.W	$100			; DEBUG | w 0 100 2
-		;addq.w	#1,MED_TRK_0_COUNT-DB(a6)	;inc elapsed #calls since last
-		;addq.w	#1,MED_TRK_1_COUNT-DB(a6)
-		;addq.w	#1,MED_TRK_2_COUNT-DB(a6)
-		;addq.w	#1,MED_TRK_3_COUNT-DB(a6)
-	;ENDC
 		tst.b	bpmcounter-DB(a6)
 		bmi.s	plr_nobpm
 		subq.b	#1,bpmcounter-DB(a6)
