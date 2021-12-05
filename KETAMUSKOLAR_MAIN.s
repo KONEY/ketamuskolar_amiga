@@ -5,18 +5,18 @@
 	INCLUDE	"PhotonsMiniWrapper1.04.s"
 	INCLUDE	"med/med_feature_control.i"		; MED CFGs
 ;********** Constants **********
-w_real	EQU 320
-w	EQU 320		; screen width
-h	EQU 234		; screen height
-bpls	EQU 4		; depth
-bpl	EQU w/16*2		; byte-width of 1 bitplane line (40bytes)
-bwid	EQU bpls*bpl		; byte-width of 1 pixel line (all bpls)
-blitsize	EQU h*64+w/16	; size of blitter operation
-hband	EQU 10		; lines reserved for textscroller
-hblit	EQU h/2		;-hband	; size of blitter op without textscroller
-wblit	EQU w/2/16*2
-bpl_real	EQU w/16*2
-vbarwbpl	EQU w/10/16
+w_real		EQU 320
+w		EQU 320		; screen width
+h		EQU 234		; screen height
+bpls		EQU 4		; depth
+bpl		EQU w/16*2	; byte-width of 1 bitplane line (40bytes)
+bwid		EQU bpls*bpl	; byte-width of 1 pixel line (all bpls)
+blitsize		EQU h*64+w/16	; size of blitter operation
+hband		EQU 10		; lines reserved for textscroller
+hblit		EQU h/2		;-hband	; size of blitter op without textscroller
+wblit		EQU w/2/16*2
+bpl_real		EQU w/16*2
+vbarwbpl		EQU w/10/16
 X_SPLIT_SLICE	EQU 18
 X_SPLIT2X_SLICE	EQU 13
 TXT_FRMSKIP 	EQU 4
@@ -133,13 +133,12 @@ Demo:					; a4=VBR, a6=Custom Registers Base addr
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
 
 	.pointCopper:
-	MOVE.W	#7,MED_START_POS		; skip to pos# after first block
+	;MOVE.W	#7,MED_START_POS		; skip to pos# after first block
 	JSR	_startmusic
 	;*--- start copper ---*
 	MOVE.L	#COPPER,$80(A6)
 ;********************  main loop  ********************
 MainLoop:
-	;BSR.W	__COPCOL_EDIT	; EDITS COPPER COLORS
 	move.w	#$12c,d0		; No buffering, so wait until raster
 	bsr.w	WaitRaster	; is below the Display Window.
 	;*--- swap buffers ---*
@@ -155,58 +154,35 @@ MainLoop:
 	;*--- ...draw into the other(a2) ---*
 	;move.l	a2,a1
 	; do stuff here :)
-	; **** JOYSTICK TEST ****
 
 	BSR.W	__SET_MED_VALUES
-	
-	BRA.W	.SkipJoyActions
-	MOVEM.W	$DFF00C,D0	; FROM EAB
-	ANDI.W	#$0303,D0
-	MOVE.W	D0,D1
-	ADD.W	D1,D1
-	ADDI.W	#$0101,D0
-	ADD.W	D1,D0
 
-	BTST	#9,D0		; 9 LEFT
-	BEQ.S	.notLeft
-	NOP
-	.notLeft:
-	BTST	#1,D0		; 1 RIGHT
-	BEQ.S	.notRight
-	NOP
-	.notRight:
-	BTST	#2,D0		; 10 UP
-	BEQ.S	.notDown
-	NOP
-	.notDown:
-	BTST	#10,D0		; 2 DOWN
-	BEQ.S	.notUp
-	NOP
-	.notUp:
-	BTST	#$07,$BFE001	; FIRE
-	BNE.W	.notFire
-	NOP
-	.notFire:
-	.SkipJoyActions:
-	; **** JOYSTICK TEST ****
+	;## DEBUG VALUES ##
+	;MOVE.L	AUDIOCHLEV_0,D0
+	;MOVE.L	AUDIOCHLEV_2,D1
+	;MOVE.L	MED_SONG_POS,D2
+	;MOVE.L	MED_TRK_0_INST,D3
+	;MOVE.L	MED_TRK_2_INST,D4
+	;CLR.W	$100		; DEBUG | w 0 100 2
+	;## DEBUG VALUES ##
 
 	SONG_BLOCKS_EVENTS:
 	;* FOR TIMED EVENTS ON BLOCK ****
 	MOVE.L	#$FFFFFFFF,BLTAFWM	; THEY'LL NEVER
 	;MOVE.W	#$FFFF,BLTALWM		; CHANGE
-	MOVE.W	MED_MODULE+mmd_pseqnum,D5
+	MOVE.W	MED_SONG_POS,D5
 	LEA	TIMELINE,A3
-	LSL.W	#2,D5		; CALCULATES OFFSET (OPTIMIZED)
-	MOVE.L	(A3,D5),A4	; THANKS HEDGEHOG!!
-	JSR	(A4)		; EXECUTE SUBROUTINE BLOCK#
+	LSL.W	#2,D5			; CALCULATES OFFSET (OPTIMIZED)
+	MOVE.L	(A3,D5),A4		; THANKS HEDGEHOG!!
+	JSR	(A4)			; EXECUTE SUBROUTINE BLOCK#
 	;*--- main loop end ---*
 
 	BSR.W	__FILLANDSCROLLTXT
-	;MOVE.W	$DFF006,$DFF180	; show rastertime left down to $12c
+	;MOVE.W	$DFF006,$DFF180		; show rastertime left down to $12c
 	ENDING_CODE:
 	BTST	#6,$BFE001
 	BNE.S	.DontShowRasterTime
-	;MOVE.W	$DFF006,$DFF180	; show rastertime left down to $12c
+	;MOVE.W	$DFF006,$DFF180		; show rastertime left down to $12c
 	MOVE.B	X_DIR,D5
 	NEG.B	D5
 	MOVE.B	D5,X_DIR
@@ -329,8 +305,8 @@ __RANDOMIZE_PLANE:
 	rts
 
 __SET_MED_VALUES:
-	MOVE.W	MED_MODULE+mmd_pline,MED_BLOCK_LINE
-	MOVE.W	MED_MODULE+mmd_pseqnum,MED_SONG_POS
+	;MOVE.W	MED_MODULE+mmd_pline,MED_BLOCK_LINE
+	;MOVE.W	MED_MODULE+mmd_pseqnum,MED_SONG_POS
 
 	MOVE.W	MED_STEPSEQ_POS,D0	; UPDATE STEPSEQUENCER
 	ANDI.W	#$F,D0			; POSITION (0-15 = 16 LEDS)
@@ -360,7 +336,6 @@ __SET_MED_VALUES:
 	ADDQ.W	#$1,MED_TRK_1_COUNT
 	ADDQ.W	#$1,MED_TRK_2_COUNT
 	ADDQ.W	#$1,MED_TRK_3_COUNT
-
 	RTS
 
 __FILLANDSCROLLTXT:
@@ -1716,7 +1691,7 @@ __BLK_BEGIN3_PRE:
 	LEA	COLORSEQ1,A1
 	MOVE.W	AUDIOCHLEV_1,D1	; FLASH KICK
 	;LSR.W	#1,D1
-	LSL.W	#2,D1
+	LSL.W	#$2,D1
 	MOVE.L	(A1,D1.W),COPPER\.Palette
 	;BRA.S	__BLK_BEGIN3
 	;RTS
@@ -1834,13 +1809,14 @@ __BLK_GLITCH:
 
 __BLK_0_PRE:
 	MOVE.W	MED_BLOCK_LINE,D0
-	CMP.W	#5,D0
+	CMP.W	#$4,D0
 	BGE.S	__BLK_0
 	LEA	COLORSEQ1,A1
 	MOVE.W	AUDIOCHLEV_1,D1	; FLASH KICK
-	;CLR.W	$100		; DEBUG | w 0 100 2
-	;LSR.W	#1,D1
-	LSL.W	#2,D1
+	;LSR.W	#$2,D1
+	SUB.W	#4,D1
+	CLR.W	$100		; DEBUG | w 0 100 2
+	LSL.W	#$2,D1
 	MOVE.L	(A1,D1.W),COPPER\.Palette
 	;BRA.S	__BLK_0
 	;RTS
@@ -2112,7 +2088,7 @@ __COPCOL_EDIT:
 
 ;********** Fastmem Data **********
 TIMELINE:		;DC.L __BLK_0,__BLK_1,__BLK_0,__BLK_1
-		DC.L __BLK_BEGIN,__BLK_BEGIN,__BLK_BEGIN,__BLK_BEGIN3		; BLOCK 0/1 ARE... PLAYED TWICE? :|
+		DC.L __BLK_BEGIN,__BLK_BEGIN,__BLK_BEGIN,__BLK_BEGIN3	; BLOCK 0/1 ARE... PLAYED TWICE? :|
 		DC.L __BLK_BEGIN3,__BLK_BEGIN3,__BLK_BEGIN3,__BLK_BEGIN3_PRE
 		;DC.L __BLK_BEGIN3,__BLK_BEGIN3,__BLK_BEGIN3,__BLK_BEGIN3_PRE
 		;DC.L __BLK_TEST_RESET,__BLK_TEST_RESET,__BLK_TEST_RESET,__BLK_TEST_RESET
@@ -2140,6 +2116,7 @@ AUDIOCHLEV_1:	DC.W 0
 AUDIOCHLEV_2:	DC.W 0
 AUDIOCHLEV_3:	DC.W 0
 MED_SEQ_ACTUAL:	DC.W 0
+MED_LINE_ACTUAL:	DC.W $FFFF
 
 SCROLL_DEST:	DC.L 0
 SCROLL_SRC:	DC.L 0
