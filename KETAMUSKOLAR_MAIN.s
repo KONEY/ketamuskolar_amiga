@@ -218,12 +218,12 @@ PokePtrs:					; Generic, poke ptrs into copper list
 	dbf	d1,.bpll
 	rts
 
-ClearScreen:				; a1=screen destination address to clear
+ClearPlane:				; a1=screen destination address to clear
 	bsr	WaitBlitter
-	clr.w	$66(a6)			; destination modulo
-	move.l	#$01000000,$40(a6)		; set operation type in BLTCON0/1
-	move.l	a1,$54(a6)		; destination address
-	move.l	#blitsize*bpls,$58(a6)	;blitter operation size
+	clr.w	BLTDMOD			; destination modulo
+	move.l	#$01000000,BLTCON0		; set operation type in BLTCON0/1
+	move.l	A1,BLTDPTH		; destination address
+	move.l	#blitsize,BLTSIZE		; blitter operation size
 	rts
 
 VBint:					; Blank template VERTB interrupt
@@ -1692,7 +1692,10 @@ __BLK_BEGIN3_PRE:
 	;LSR.W	#1,D1
 	LSL.W	#$2,D1
 	MOVE.L	(A1,D1.W),COPPER\.Palette
-	;BRA.S	__BLK_BEGIN3
+
+	MOVE.L	DITHERPLANE,SCROLL_SRC
+	MOVE.L	BGPLANE3,SCROLL_DEST
+	BSR.W	__BLIT_DITHER_TILE
 	;RTS
 __BLK_BEGIN3:
 	MOVE.W	#2*64+w/16,BLIT_SIZE
@@ -1740,7 +1743,6 @@ __BLK_BEGIN3:
 	MOVE.L	BGPLANE1,SCROLL_SRC
 	MOVE.L	BGPLANE1,SCROLL_DEST
 	BSR.W	__SCROLL_Y_HALF
-
 	RTS
 
 __BLK_BEGIN4_POST:
@@ -1761,10 +1763,12 @@ __BLK_BEGIN4:
 	MOVE.W	#0,BLIT_D_MOD
 
 	MOVE.L	BGPLANE0,SCROLL_DEST
+	BSR.W	__BLIT_GLITCH_BAND
 	ADD.L	#bpl*(h-2),SCROLL_DEST
 	BSR.W	__BLIT_GLITCH_BAND
 
 	MOVE.L	BGPLANE1,SCROLL_DEST
+	BSR.W	__BLIT_GLITCH_BAND
 	ADD.L	#bpl*(h-2),SCROLL_DEST
 	BSR.W	__BLIT_GLITCH_BAND
 
@@ -1773,21 +1777,19 @@ __BLK_BEGIN4:
 	MOVE.W	AUDIOCHLEV_0,D1
 	CMP.W	#$F,D1
 	BNE.S	.noChangeDir1
-	MOVE.B	Y_FULL_DIR,D5
-	NEG.B	D5
-	MOVE.B	D5,Y_FULL_DIR
-	MOVE.B	X_PROGR_TYPE,D5
-	NEG.B	D5
-	MOVE.B	D5,X_PROGR_TYPE
 	MOVE.B	X_PROGR_DIR,D5
 	NEG.B	D5
 	MOVE.B	D5,X_PROGR_DIR
+	MOVE.B	X_PROGR_TYPE,D5
+	NEG.B	D5
+	MOVE.B	D5,X_PROGR_TYPE
+	MOVE.B	Y_FULL_DIR,D5
+	NEG.B	D5
+	MOVE.B	D5,Y_FULL_DIR
 	.noChangeDir1:
 
-	MOVE.W	AUDIOCHLEV_0,D1
-	CMP.W	#$7,D1
-	BLO.S	.noChangeDir2
-	CLR.W	$100		; DEBUG | w 0 100 2
+	TST.W	AUDIOCHLEV_0
+	BEQ.S	.noShuffle
 	MOVE.W	#2,Y_HALF_SHIFT
 	MOVE.W	AUDIOCHLEV_0,BLIT_A_MOD
 	MOVE.W	AUDIOCHLEV_0,BLIT_D_MOD
@@ -1805,9 +1807,8 @@ __BLK_BEGIN4:
 	BSR.W	__SCROLL_Y_HALF
 
 	BRA.S	.skip
-
-	.noChangeDir2:
-	MOVE.W	AUDIOCHLEV_1,D1
+	.noShuffle:
+	MOVE.W	AUDIOCHLEV_3,D1
 	LSR.W	#1,D1
 	MOVE.W	D1,Y_FULL_SHIFT
 	BRA.W	__BLK_1
@@ -2236,7 +2237,7 @@ JOYDIR_STATUS:	DC.W 0
 
 PAT_CHAOS:	DC.L PATTERN1
 PAT_GEAR:		DC.L PATTERN2
-PATTERN_ACTUAL:	DC.L PATTERN2
+PATTERN_ACTUAL:	DC.L PATTERN1
 
 BG1:
 BGPLANE0:		DC.L PLANE0
