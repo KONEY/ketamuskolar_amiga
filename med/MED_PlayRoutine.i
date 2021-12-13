@@ -3107,7 +3107,7 @@ _module:		dc.l	0
 dmaonmsk:	dc.w	0 ;\_May not be
 	IFNE	MIDI
 bytesinnotebuff:	dc.w	0 ;/ separated!
-noteonbuff:	ds.b	(MAX_NUMTRACKS+2)*3
+noteonbuff:	ds.b	(4+2)*3
 		even
 intrson:		dc.b	0,0
 prevtbe:		dc.l	0
@@ -3191,15 +3191,16 @@ t03de:		ds.b	T03SZ-(t03de-t03d)
 		ds.b	TTMPVOLOFFS-(TAAOFFS+4)
 		dc.b	$ff
 		ds.b	T03SZ-(t03de-t03d)
-t463d:		ds.b	(MAX_NUMTRACKS-4)*T415SZ
+t463d:		ds.b	T415SZ
 trackdataptrs:	dc.l	t03d,t03d+T03SZ,t03d+2*T03SZ,t03d+3*T03SZ
 ; Build pointer table. This works on Devpac assembler, other assemblers
 ; may need modifications.
-TRKCOUNT		SET	0
-		REPT	(MAX_NUMTRACKS-4)
-		dc.l	t463d+TRKCOUNT
-TRKCOUNT		SET	TRKCOUNT+T415SZ
-		ENDR
+
+		dc.l	t463d+0
+		dc.l	t463d+1
+		dc.l	t463d+2
+		dc.l	t463d+3
+
 ; MODIFICATION FOR ASM-PRO
 ;	DC.L t463d+0
 nextblock:	dc.b 0 ;\ DON'T SEPARATE

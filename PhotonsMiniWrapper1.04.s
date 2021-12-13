@@ -95,7 +95,7 @@ IntReqD2:
 	rts
 
 WaitBlitter:			;wait until blitter is finished
-	tst.w (a6)		;for compatibility with A1000
+	tst.w BLTDDAT		;for compatibility with A1000
 	.loop:	
 	btst #6,DMACONR
 	bne.s .loop
