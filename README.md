@@ -1,4 +1,4 @@
-# KETAMUSKOLAR - AMIGA
+# KETAMUSKOLAR - AMIGA WIP
 KONEY Sixth Amiga Intro!
 
 ![Preview](https://github.com/KONEY/ketamuskolar_amiga/blob/main/preview.png)
