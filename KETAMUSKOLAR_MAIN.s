@@ -24,7 +24,7 @@ TXT_FRMSKIP 	EQU 4
 ;CLR.W	$100		; DEBUG | w 0 100 2
 ;********** Demo **********		; Demo-specific non-startup code below.
 Demo:					; a4=VBR, a6=Custom Registers Base addr
-	;MOVE.W	#$F,MED_START_POS	; skip to pos# after first block
+	;MOVE.W	#$10,MED_START_POS	; skip to pos# after first block
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
 	MOVE.W	#%1110000000100000,INTENA
@@ -208,14 +208,6 @@ PokePtrs:					; Generic, poke ptrs into copper list
 	dbf	d1,.bpll
 	rts
 
-ClearPlane:				; a1=screen destination address to clear
-	bsr	WaitBlitter
-	clr.w	BLTDMOD			; destination modulo
-	move.l	#$01000000,BLTCON0		; set operation type in BLTCON0/1
-	move.l	A1,BLTDPTH		; destination address
-	move.l	#blitsize,BLTSIZE		; blitter operation size
-	rts
-
 VBint:					; Blank template VERTB interrupt
 	movem.l	d0/a6,-(sp)		; Save used registers
 	lea	$dff000,a6
@@ -228,6 +220,17 @@ VBint:					; Blank template VERTB interrupt
 	.notvb:	
 	movem.l	(sp)+,d0/a6		; restore
 	rte
+
+__WIPE_PLANE:				; a1=screen destination address to clear
+	BSR	WaitBlitter
+	MOVE.L	#$09F00000,BLTCON0	; A**,Shift 0, A -> D
+	;MOVE.W	#0,BLTCON1		; Everything Normal
+	MOVE.L	#$0,BLTAMOD		; Init modulo Sou. A
+	;MOVE.W	#0,BLTDMOD		; Init modulo Dest D
+	MOVE.L	#EMPTY_PLANE,BLTAPTH	; Source
+	MOVE.L	A1,BLTDPTH		; Dest
+	MOVE.W	#h*64+w/16,BLTSIZE	; Start Blitter (Blitsize)
+	RTS
 
 __DBLBMP:
 	LEA	KONEY,A1
@@ -1371,6 +1374,16 @@ __BLK_1_4_TEST:
 	RTS
 
 __BLK_PLASMA:
+	MOVE.W	MED_BLOCK_LINE,D1
+	CMP.W	#48,D1
+	BLO.S	.noChangeDir
+	;TST.W	AUDIOCHLEV_3
+	;BEQ.S	.noChangeDir
+	MOVE.B	X_FULL_DIR,D5
+	NEG.B	D5
+	MOVE.B	D5,X_FULL_DIR
+	.noChangeDir:
+
 	MOVE.B	#9,X_SHIFT_LFO_MAX
 	MOVE.B	#8,Y_SHIFT_LFO_MAX
 
@@ -1398,7 +1411,6 @@ __BLK_PLASMA:
 	ADD.L	#bpl/2,SCROLL_SRC
 	ADD.L	#bpl/2,SCROLL_DEST
 	BSR.W	__SCROLL_X_PLASMA
-	;MOVE.B	#-1,X_1_4_DIR
 	RTS
 
 __BLK_TEST:
@@ -1656,20 +1668,20 @@ __BLK_TEST_Y:
 	RTS
 
 __BLK_RESET:
+	MOVE.W	#0,X_SHIFT
 	MOVE.L	DITHERPLANE,SCROLL_SRC
 	MOVE.L	BGPLANE1,SCROLL_DEST
 	MOVE.B	#1,X_DIR
 	BSR.W	__SCROLL_X
-	MOVE.W	#2,X_SHIFT
 	MOVE.B	#0,X_DIR
 	BSR.W	__SCROLL_X
-	MOVE.L	GLITCHRESET,SCROLL_SRC
-	MOVE.L	BGPLANE0,SCROLL_DEST
-	MOVE.B	#1,X_DIR
-	BSR.W	__SCROLL_X
-	MOVE.W	#2,X_SHIFT
-	MOVE.B	#0,X_DIR
-	BSR.W	__SCROLL_X
+	;MOVE.L	GLITCHRESET,SCROLL_SRC
+	;MOVE.L	BGPLANE0,SCROLL_DEST
+	;MOVE.B	#1,X_DIR
+	;BSR.W	__SCROLL_X
+	;MOVE.B	#0,X_DIR
+	;BSR.W	__SCROLL_X
+	MOVE.B	#1,FRAME_STROBE
 	RTS
 
 __BLK_SCREEN:
@@ -1686,7 +1698,6 @@ __BLK_SCREEN:
 
 	MOVE.B	#-1,Y_HALF_DIR
 	BSR.W	__SCROLL_Y_HALF
-
 	RTS
 
 __BLK_SCREEN2:
@@ -1757,7 +1768,7 @@ __BLK_BEGIN3_PRE:
 	MOVE.L	(A1,D1.W),COPPER\.Palette
 
 	MOVE.L	DITHERPLANE,SCROLL_SRC
-	MOVE.L	BGPLANE1,SCROLL_DEST
+	MOVE.L	BGPLANE3,SCROLL_DEST
 	BSR.W	__BLIT_DITHER_TILE
 	;RTS
 __BLK_BEGIN3:
@@ -1814,11 +1825,12 @@ __BLK_BEGIN4_POST:
 	BGE.S	__BLK_BEGIN4
 	LEA	COLORSEQ1,A1
 	MOVE.W	AUDIOCHLEV_1,D1	; FLASH KICK
-	;CLR.W	$100		; DEBUG | w 0 100 2
 	;LSR.W	#$2,D1
 	SUB.W	#5,D1
 	LSL.W	#$2,D1		; *2
 	MOVE.L	(A1,D1.W),COPPER\.Palette
+	MOVE.L	BGPLANE3,A1
+	BSR.W	__WIPE_PLANE
 	;RTS
 __BLK_BEGIN4:
 	MOVE.W	#2*64+w/16,BLIT_SIZE
@@ -1887,7 +1899,6 @@ __BLK_BEGIN4_PRE:
 	BEQ.S	.yes180
 	LEA	16(A2),A2
 	.yes180:
-	;CLR.W	$100		; DEBUG | w 0 100 2
 	MOVE.L	(A1)+,(A2)+
 	MOVE.L	(A1)+,(A2)+
 	MOVE.L	(A1)+,(A2)+
@@ -2044,6 +2055,11 @@ __BLK_0_POST:
 	MOVE.B	X_PROGR_DIR,D5
 	NEG.B	D5
 	MOVE.B	D5,X_PROGR_DIR
+	BRA.S	__BLK_0
+__BLK_0_PRE:
+	MOVE.W	MED_BLOCK_LINE,D1
+	CMP.W	#$30,D1
+	BGE.W	__BLK_TEST
 __BLK_0:
 	TST.W	MED_STEPSEQ_POS
 	BNE.S	.noChangeDir
@@ -2054,8 +2070,6 @@ __BLK_0:
 	NEG.B	D5
 	MOVE.B	D5,X_PROGR_DIR
 	.noChangeDir:
-
-	;BSR.W	__X_SHIFT_LFO
 
 	TST.B	FRAME_STROBE
 	BNE.W	.oddFrame
@@ -2116,6 +2130,13 @@ __BLK_0:
 	MOVE.L	BGPLANE1,SCROLL_DEST
 	BSR.W	__BLIT_DITHER_TILE
 	.noKick1:
+	RTS
+
+__BLK_PLASMA_PRE:
+	MOVE.W	AUDIOCHLEV_2,D1
+	CMP.W	#$F,D1
+	BEQ.W	__BLK_RESET
+	BRA.W	__BLK_0
 	RTS
 
 __BLK_1:
@@ -2296,9 +2317,12 @@ TIMELINE:		;DC.L __BLK_TEST,__BLK_TEST,__BLK_TEST,__BLK_TEST
 		DC.L __BLK_BEGIN3,__BLK_BEGIN3,__BLK_BEGIN3,__BLK_BEGIN3_PRE
 		DC.L __BLK_BEGIN4_POST,__BLK_BEGIN4,__BLK_BEGIN4,__BLK_BEGIN4
 		DC.L __BLK_BEGIN4,__BLK_BEGIN4,__BLK_BEGIN4,__BLK_BEGIN4_PRE
-		;DC.L __BLK_TEST_RESET,__BLK_TEST_RESET,__BLK_TEST_RESET,__BLK_TEST_RESET
-		DC.L __BLK_0,__BLK_0_POST,__BLK_0,__BLK_0
-		DC.L __BLK_0,__BLK_0,__BLK_0,__BLK_0
+		DC.L __BLK_0,__BLK_0_POST,__BLK_0,__BLK_0_PRE
+		DC.L __BLK_TEST,__BLK_0_PRE,__BLK_TEST,__BLK_0
+		DC.L __BLK_TEST,__BLK_PLASMA_PRE		;,__BLK_0_PRE,__BLK_TEST
+		DC.L __BLK_PLASMA,__BLK_PLASMA,__BLK_PLASMA,__BLK_PLASMA
+		DC.L __BLK_PLASMA,__BLK_PLASMA,__BLK_PLASMA,__BLK_PLASMA
+		DC.L __BLK_PLASMA,__BLK_PLASMA,__BLK_PLASMA,__BLK_PLASMA
 		DC.L __BLK_GLITCH,__BLK_GLITCH,__BLK_GLITCH,__BLK_GLITCH,__BLK_GLITCH,__BLK_GLITCH
 		DC.L __BLK_TEST_Y,__BLK_SCREEN2,__BLK_SCREEN2,__BLK_SCREEN2,__BLK_SCREEN2
 		DC.L __BLK_BEGIN,__BLK_SCREEN2,__BLK_BEGIN,__BLK_SCREEN2
