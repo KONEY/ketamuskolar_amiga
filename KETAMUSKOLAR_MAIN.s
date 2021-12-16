@@ -11,19 +11,19 @@ h		EQU 234		; screen height
 bpls		EQU 4		; depth
 bpl		EQU w/16*2	; byte-width of 1 bitplane line (40bytes)
 bwid		EQU bpls*bpl	; byte-width of 1 pixel line (all bpls)
-blitsize		EQU h*64+w/16	; size of blitter operation
+blitsize	EQU h*64+w/16	; size of blitter operation
 hband		EQU 10		; lines reserved for textscroller
 hblit		EQU h/2		;-hband	; size of blitter op without textscroller
 wblit		EQU w/2/16*2
-bpl_real		EQU w/16*2
-vbarwbpl		EQU w/10/16
+bpl_real	EQU w/16*2
+vbarwbpl	EQU w/10/16
 X_SPLIT_SLICE	EQU 18
 X_SPLIT2X_SLICE	EQU 13
 TXT_FRMSKIP 	EQU 4
 ;*************
 ;CLR.W	$100				; DEBUG | w 0 100 2
 ;********** Demo **********			; Demo-specific non-startup code below.
-Demo:					; a4=VBR, a6=Custom Registers Base addr
+Demo:						; a4=VBR, a6=Custom Registers Base addr
 	;MOVE.W	#$10,MED_START_POS		; skip to pos# after first block
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
@@ -101,8 +101,8 @@ Demo:					; a4=VBR, a6=Custom Registers Base addr
 	MOVE.W	BLIT_Y_MASK,BLTAFWM		; THEY'LL NEVER
 	MOVE.W	BLIT_X_MASK,BLTALWM		; CHANGE
 
-	MOVE.L	DITHERPLANE,SCROLL_DEST	; FILLS A PLANE
-	BSR.W	__DITHER_PLANE		; WITH DITHERING
+	MOVE.L	DITHERPLANE,SCROLL_DEST		; FILLS A PLANE
+	BSR.W	__DITHER_PLANE			; WITH DITHERING
 
 	MOVE.L	#HEADER,SCROLL_DEST
 	BSR.W	__DBLBMP
@@ -140,7 +140,7 @@ Demo:					; a4=VBR, a6=Custom Registers Base addr
 ;********************  main loop  ********************
 MainLoop:
 	move.w	#$12c,d0			; No buffering, so wait until raster
-	bsr.w	WaitRaster		; is below the Display Window.
+	bsr.w	WaitRaster			; is below the Display Window.
 	;*--- swap buffers ---*
 	;movem.l	DrawBuffer(PC),a2-a3
 	;exg	a2,a3
@@ -161,19 +161,19 @@ MainLoop:
 	;* FOR TIMED EVENTS ON BLOCK ****
 	MOVE.W	MED_SONG_POS,D5
 	LEA	TIMELINE,A3
-	LSL.W	#2,D5			; CALCULATES OFFSET (OPTIMIZED)
-	MOVE.L	(A3,D5),A4		; THANKS HEDGEHOG!!
-	JSR	(A4)			; EXECUTE SUBROUTINE BLOCK#
+	LSL.W	#2,D5				; CALCULATES OFFSET (OPTIMIZED)
+	MOVE.L	(A3,D5),A4			; THANKS HEDGEHOG!!
+	JSR	(A4)				; EXECUTE SUBROUTINE BLOCK#
 	;MOVE.W	#%1000010000000000,DMACON	; BIT10=BLIT NASTY ENABLE
 	;MOVE.W	#%0000010000000000,DMACON	; BIT10=BLIT NASTY DISABLE
 	;*--- main loop end ---*
 
 	BSR.W	__FILLANDSCROLLTXT
-	;MOVE.W	$DFF006,$DFF180		; show rastertime left down to $12c
+	;MOVE.W	$DFF006,$DFF180			; show rastertime left down to $12c
 	ENDING_CODE:
 	BTST	#6,$BFE001
 	BNE.S	.DontShowRasterTime
-	;MOVE.W	$DFF006,$DFF180		; show rastertime left down to $12c
+	;MOVE.W	$DFF006,$DFF180			; show rastertime left down to $12c
 	MOVE.B	X_DIR,D5
 	NEG.B	D5
 	MOVE.B	D5,X_DIR
@@ -188,7 +188,7 @@ MainLoop:
 	MOVE.B	D5,X_FULL_DIR
 	.DontShowRasterTime:
 
-	BTST	#2,$DFF016		; POTINP - RMB pressed?
+	BTST	#2,$DFF016			; POTINP - RMB pressed?
 	BNE.W	MainLoop			; then loop
 	;*--- exit ---*
 	MOVEM.L	D0-A6,-(SP)
@@ -201,34 +201,34 @@ PokePtrs:					; Generic, poke ptrs into copper list
 	.bpll:	
 	move.l	a0,d2
 	swap	d2
-	move.w	d2,(a1)			; high word of address
+	move.w	d2,(a1)				; high word of address
 	move.w	a0,4(a1)			; low word of address
-	addq.w	#8,a1			; skip two copper instructions
-	add.l	d0,a0			; next ptr
+	addq.w	#8,a1				; skip two copper instructions
+	add.l	d0,a0				; next ptr
 	dbf	d1,.bpll
 	rts
 
-VBint:					; Blank template VERTB interrupt
-	movem.l	d0/a6,-(sp)		; Save used registers
+VBint:						; Blank template VERTB interrupt
+	movem.l	d0/a6,-(sp)			; Save used registers
 	lea	$dff000,a6
-	btst	#5,$1f(a6)		; check if it's our vertb int.
+	btst	#5,$1f(a6)			; check if it's our vertb int.
 	beq.s	.notvb
 	;*--- do stuff here ---*
-	moveq	#$20,d0			; poll irq bit
+	moveq	#$20,d0				; poll irq bit
 	move.w	d0,$9c(a6)
 	move.w	d0,$9c(a6)
 	.notvb:	
-	movem.l	(sp)+,d0/a6		; restore
+	movem.l	(sp)+,d0/a6			; restore
 	rte
 
-__WIPE_PLANE:				; a1=screen destination address to clear
+__WIPE_PLANE:					; a1=screen destination address to clear
 	BSR	WaitBlitter
 	MOVE.L	#$09F00000,BLTCON0		; A**,Shift 0, A -> D
-	;MOVE.W	#0,BLTCON1		; Everything Normal
-	MOVE.L	#$0,BLTAMOD		; Init modulo Sou. A
-	;MOVE.W	#0,BLTDMOD		; Init modulo Dest D
-	MOVE.L	#EMPTY_PLANE,BLTAPTH	; Source
-	MOVE.L	A1,BLTDPTH		; Dest
+	;MOVE.W	#0,BLTCON1			; Everything Normal
+	MOVE.L	#$0,BLTAMOD			; Init modulo Sou. A
+	;MOVE.W	#0,BLTDMOD			; Init modulo Dest D
+	MOVE.L	#EMPTY_PLANE,BLTAPTH		; Source
+	MOVE.L	A1,BLTDPTH			; Dest
 	MOVE.W	#h*64+w/16,BLTSIZE		; Start Blitter (Blitsize)
 	RTS
 
@@ -267,12 +267,12 @@ __DBLBMP:
 __DITHER_PLANE:
 	;ADD.L	#(h-1)*bpl,SCROLL_DEST
 	MOVE.L	SCROLL_DEST,A4
-	MOVE.W	#h-1,D4			; QUANTE LINEE
+	MOVE.W	#h-1,D4				; QUANTE LINEE
 	MOVE.L	#$AAAAAAAA,D5
-	.outerloop:			; NUOVA RIGA
-	MOVE.W	#(bpl/4)-1,D6		; RESET D6
+	.outerloop:				; NUOVA RIGA
+	MOVE.W	#(bpl/4)-1,D6			; RESET D6
 	NOT.L	D5
-	.innerloop:			; LOOP KE CICLA LA BITMAP
+	.innerloop:				; LOOP KE CICLA LA BITMAP
 	MOVE.L	D5,(A4)+
 	DBRA	D6,.innerloop
 	DBRA	D4,.outerloop
@@ -280,8 +280,8 @@ __DITHER_PLANE:
 
 __RANDOMIZE_PLANE:
 	MOVE.L	SCROLL_DEST,A4
-	MOVE.W	#bpl/2*h-1,D4		; QUANTE LINEE
-	.innerloop:			; LOOP KE CICLA LA BITMAP
+	MOVE.W	#bpl/2*h-1,D4			; QUANTE LINEE
+	.innerloop:				; LOOP KE CICLA LA BITMAP
 	BSR.S	_RandomWord
 	ROL.W	D4,D5
 	MOVE.W	D5,(A4)+
@@ -292,14 +292,14 @@ __RANDOMIZE_PLANE:
 	bsr	_RandomByte
 	rol.w	#8,d5
 	_RandomByte:
-	move.b	$dff007,d5		;$dff00a $dff00b for mouse pos
+	move.b	$dff007,d5			;$dff00a $dff00b for mouse pos
 	move.b	$bfd800,d3
 	eor.b	d3,d5
 	rts
 
 __SET_MED_VALUES:
 	MOVE.W	MED_STEPSEQ_POS,D0		; UPDATE STEPSEQUENCER
-	ANDI.W	#$F,D0			; POSITION (0-15 = 16 LEDS)
+	ANDI.W	#$F,D0				; POSITION (0-15 = 16 LEDS)
 	MOVE.W	D0,MED_STEPSEQ_POS
 
 	LEA	MED_TRK_0_COUNT(PC),A0
@@ -308,16 +308,16 @@ __SET_MED_VALUES:
 	LEA	MED_TRK_0_INST,A3
 	MOVEQ	#3,D7
 	.loop:
-	MOVEQ	#$F,D0			; maxvalue
+	MOVEQ	#$F,D0				; maxvalue
 	SUB.W	(A0)+,D0			; -#frames/irqs since instrument trigger
-	BPL.S	.ok			; below minvalue?
-	MOVEQ	#$0,D0			; then set to minvalue
-	MOVE.W	D0,(A3)			; RESET TWO BYTES (INST+NOTE)
+	BPL.S	.ok				; below minvalue?
+	MOVEQ	#$0,D0				; then set to minvalue
+	MOVE.W	D0,(A3)				; RESET TWO BYTES (INST+NOTE)
 	.ok:
 	MOVE.W	D0,(A2)+			; LEVEL VALUE TO USE IN CODE
-	;ROL.L	#$4,D0			; expand bits to green
-	;ROL.L	#$4,D0			; expand bits to green
-	;MOVE.W	D0,(A1)			; poke color
+	;ROL.L	#$4,D0				; expand bits to green
+	;ROL.L	#$4,D0				; expand bits to green
+	;MOVE.W	D0,(A1)				; poke color
 	;LEA	16(A1),A1
 	LEA	2(A3),A3
 	DBF	D7,.loop
@@ -332,28 +332,28 @@ __FILLANDSCROLLTXT:
 	MOVE.L	#$0,D2
 	MOVE.L	D2,D6
 	MOVE.W	FRAMESINDEX,D7
-	CMPI.W	#TXT_FRMSKIP,D7		; TXT_FRMSKIP
+	CMPI.W	#TXT_FRMSKIP,D7			; TXT_FRMSKIP
 	BNE.W	.skip
 	LEA	FOOTER,A4
 	LEA	FONT,A5
 	LEA	TEXT,A3
 	ADD.W	#bpl*3+1,A4
 	ADD.W	TEXTINDEX,A3
-	CMP.L	#_TEXT-1,A3		; Siamo arrivati all'ultima word della TAB?
+	CMP.L	#_TEXT-1,A3			; Siamo arrivati all'ultima word della TAB?
 	BNE.S	.proceed
-	MOVE.W	D6,TEXTINDEX		; Riparti a puntare dalla prima word
-	LEA	TEXT,A3			; FIX FOR GLITCH (I KNOW IT'S FUN... :)
+	MOVE.W	D6,TEXTINDEX			; Riparti a puntare dalla prima word
+	LEA	TEXT,A3				; FIX FOR GLITCH (I KNOW IT'S FUN... :)
 	.proceed:
-	MOVE.B	(A3),D2			; Prossimo carattere in d2
-	SUBI.B	#$20,D2			; TOGLI 32 AL VALORE ASCII DEL CARATTERE, IN
-	MULU.W	#$7,D2			; MOLTIPLICA PER 8 IL NUMERO PRECEDENTE,
+	MOVE.B	(A3),D2				; Prossimo carattere in d2
+	SUBI.B	#$20,D2				; TOGLI 32 AL VALORE ASCII DEL CARATTERE, IN
+	MULU.W	#$7,D2				; MOLTIPLICA PER 8 IL NUMERO PRECEDENTE,
 	ADD.W	#$1,D2
 	ADD.W	D2,A5
 	MOVE.B	#$5,D6
 	.loop:
 	MOVE.B	(A5)+,(A4)+
 	MOVE.B	#$0,(A4)+			; WRAPS MORE NICELY?
-	ADD.W	#bpl*2-2,A4		; POSITIONING
+	ADD.W	#bpl*2-2,A4			; POSITIONING
 	DBRA	D6,.loop
 	.skip:
 	SUBI.W	#$1,D7
@@ -364,7 +364,7 @@ __FILLANDSCROLLTXT:
 	.reset:
 	ADDI.W	#$1,TEXTINDEX
 	MOVE.W	#TXT_FRMSKIP,D7
-	MOVE.W	D7,FRAMESINDEX		; OTTIMIZZABILE
+	MOVE.W	D7,FRAMESINDEX			; OTTIMIZZABILE
 
 	.shifttext:
 	LEA	FOOTER_END,A2
@@ -388,42 +388,42 @@ __BLIT_GLITCH_SLICE:
 	MOVE.L	SCROLL_DEST,A4
 
 	.waitData:
-	ADD.L	#bpl,A3			; GO TO NEXT
-	TST.L	(A3)			; IF LINE EMPTY
+	ADD.L	#bpl,A3				; GO TO NEXT
+	TST.L	(A3)				; IF LINE EMPTY
 	BEQ.S	.waitData			
 	.dataOk:
-	CMP.L	#_MED_MODULE-(bpl/2),A3	; LAST WORD OF DATA?
+	CMP.L	#_MED_MODULE-(bpl/2),A3		; LAST WORD OF DATA?
 	BLS.S	.notEnd
-	MOVE.L	GLITCHRESET,A3		; RELOAD
+	MOVE.L	GLITCHRESET,A3			; RELOAD
 	.notEnd:
 
 	bsr	WaitBlitter
-	MOVE.W	D1,BLTCON0		; BLTCON0
+	MOVE.W	D1,BLTCON0			; BLTCON0
 	MOVE.W	#%0000000000000000,BLTCON1	; BLTCON1 BIT 12 DESC MODE
-	MOVE.W	#0,BLTAMOD		; BLTAMOD
-	MOVE.W	#bpl-(16/16*2),BLTDMOD	; BLTDMOD
+	MOVE.W	#0,BLTAMOD			; BLTAMOD
+	MOVE.W	#bpl-(16/16*2),BLTDMOD		; BLTDMOD
 
-	MOVE.L	A3,BLTAPTH		; BLTAPT
+	MOVE.L	A3,BLTAPTH			; BLTAPT
 	MOVE.L	A4,BLTDPTH
 	MOVE.W	#h*64+16/16,BLTSIZE		; BLTSIZE
-	MOVE.L	A3,GLITCHGOOD		; REMEMBER POSITION
+	MOVE.L	A3,GLITCHGOOD			; REMEMBER POSITION
 	; ## MAIN BLIT ####
 	RTS
 
 __BLIT_GLITCH_BAND:
-	;MOVE.L	#%1001111100001000,D1	; %1000100111110000 +ROL.W	#4,D1
+	;MOVE.L	#%1001111100001000,D1		; %1000100111110000 +ROL.W	#4,D1
 	MOVE.L	GLITCHGOOD,A3
 	MOVE.L	SCROLL_DEST,A4
 
 	.waitData:
-	ADD.L	#bpl,A3			; GO TO NEXT
-	TST.L	(A3)			; IF LINE EMPTY
+	ADD.L	#bpl,A3				; GO TO NEXT
+	TST.L	(A3)				; IF LINE EMPTY
 	BEQ.S	.waitData			
 	.dataOk:
-	CMP.L	#_MED_MODULE-(bpl/2),A3	; LAST WORD OF DATA?
+	CMP.L	#_MED_MODULE-(bpl/2),A3		; LAST WORD OF DATA?
 	BLS.S	.notEnd
-	MOVE.L	GLITCHRESET,A3		; RELOAD
-	;MOVE.W	$DFF006,$DFF180		; show rastertime left down to $12c
+	MOVE.L	GLITCHRESET,A3			; RELOAD
+	;MOVE.W	$DFF006,$DFF180			; show rastertime left down to $12c
 	.notEnd:
 
 	;ROR.W	#4,D1
@@ -434,10 +434,10 @@ __BLIT_GLITCH_BAND:
 	MOVE.W	BLIT_A_MOD,BLTAMOD		; BLTAMOD
 	MOVE.W	BLIT_D_MOD,BLTDMOD		; BLTDMOD
 
-	MOVE.L	A3,BLTAPTH		; BLTAPT
+	MOVE.L	A3,BLTAPTH			; BLTAPT
 	MOVE.L	A4,BLTDPTH
 	MOVE.W	BLIT_SIZE,BLTSIZE		; BLTSIZE
-	MOVE.L	A3,GLITCHGOOD		; REMEMBER POSITION
+	MOVE.L	A3,GLITCHGOOD			; REMEMBER POSITION
 	; ## MAIN BLIT ####
 	RTS
 
