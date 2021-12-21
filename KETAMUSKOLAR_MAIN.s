@@ -246,10 +246,10 @@ VBint:					; Blank template VERTB interrupt
 
 __WIPE_PLANE:				; a1=screen destination address to clear
 	BSR	WaitBlitter
-	MOVE.L	#$09F00000,BLTCON0		; A**,Shift 0, A -> D
-	;MOVE.W	#0,BLTCON1		; Everything Normal
-	MOVE.L	#$0,BLTAMOD		; Init modulo Sou. A
-	;MOVE.W	#0,BLTDMOD		; Init modulo Dest D
+	MOVE.W	#$09F0,BLTCON0		; A**,Shift 0, A -> D
+	MOVE.W	#0,BLTCON1		; Everything Normal
+	MOVE.L	#0,BLTAMOD		; Init modulo Sou. A
+	MOVE.W	#0,BLTDMOD		; Init modulo Dest D
 	MOVE.L	#EMPTY_PLANE,BLTAPTH	; Source
 	MOVE.L	SCROLL_DEST,BLTDPTH		; Dest
 	MOVE.W	#h*64+w/16,BLTSIZE		; Start Blitter (Blitsize)
