@@ -50,6 +50,7 @@ Demo:					; a4=VBR, a6=Custom Registers Base addr
 	;LEA	SCREEN1,A1
 	;BSR.W	ClearScreen
 	;LEA	SCREEN2,A1
+	;LEA	EMPTY_PLANE,A1
 	;BSR.W	ClearScreen
 	BSR	WaitBlitter
 
@@ -115,6 +116,8 @@ Demo:					; a4=VBR, a6=Custom Registers Base addr
 
 	MOVE.L	DITHERPLANE,SCROLL_DEST	; FILLS A PLANE
 	BSR.W	__DITHER_PLANE		; WITH DITHERING
+	;MOVE.L	#EMPTY_PLANE,SCROLL_DEST
+	;BSR.W	__DITHER_PLANE		; WITH DITHERING
 
 	MOVE.L	#HEADER,SCROLL_DEST
 	BSR.W	__DBLBMP
@@ -130,7 +133,7 @@ Demo:					; a4=VBR, a6=Custom Registers Base addr
 	BSR.W	__SCROLL_X
 
 	;MOVE.L	DITHERPLANE,SCROLL_SRC
-	;MOVE.L	BGPLANE3,SCROLL_DEST
+	;MOVE.L	#EMPTY_PLANE,SCROLL_DEST
 	;MOVE.B	#1,X_DIR
 	;BSR.W	__SCROLL_X
 	;MOVE.B	#0,X_DIR
@@ -162,6 +165,9 @@ Demo:					; a4=VBR, a6=Custom Registers Base addr
 	MOVE.L	#COPPER,COP1LC
 ;********************  main loop  ********************
 MainLoop:
+	BSR.W	__SET_MED_VALUES
+	MOVE.L	BGPLANE3,SCROLL_DEST
+	BSR.W	__WIPE_PLANE
 	move.w	#$12c,d0			; No buffering, so wait until raster
 	bsr.w	WaitRaster		; is below the Display Window.
 	;*--- swap buffers ---*
@@ -176,9 +182,17 @@ MainLoop:
 	;bsr.w	PokePtrs
 	;*--- ...draw into the other(a2) ---*
 	;move.l	a2,a1
-	; do stuff here :)
 
-	BSR.W	__SET_MED_VALUES
+	;MOVEM.L	BGPLANE3,A2
+	;MOVEM.L	BGPLANE3_BUF,A3
+	;EXG	A2,A3
+	;MOVEM.L	A3,BGPLANE3
+	;MOVEM.L	A2,BGPLANE3_BUF
+	;MOVE.L	A3,A0
+	;LEA	COPPER\.Plane3Ptr+2,A1
+	;MOVEQ	#0,D1
+	;BSR.W	PokePtrs
+	; do stuff here :)
 
 	SONG_BLOCKS_EVENTS:
 	;* FOR TIMED EVENTS ON BLOCK ****
@@ -196,7 +210,7 @@ MainLoop:
 	ENDING_CODE:
 	BTST	#6,$BFE001
 	BNE.S	.DontShowRasterTime
-	;MOVE.W	$DFF006,$DFF180		; show rastertime left down to $12c
+	MOVE.W	$DFF006,$DFF180		; show rastertime left down to $12c
 	MOVE.B	X_DIR,D5
 	NEG.B	D5
 	MOVE.B	D5,X_DIR
@@ -231,28 +245,31 @@ PokePtrs:					; Generic, poke ptrs into copper list
 	dbf	d1,.bpll
 	rts
 
-VBint:					; Blank template VERTB interrupt
-	movem.l	d0/a6,-(sp)		; Save used registers
-	lea	$dff000,a6
-	btst	#5,$1f(a6)		; check if it's our vertb int.
+VBint:				; Blank template VERTB interrupt
+	btst	#5,$DFF01F	; check if it's our vertb int.
 	beq.s	.notvb
-	;*--- do stuff here ---*
-	moveq	#$20,d0			; poll irq bit
-	move.w	d0,$9c(a6)
-	move.w	d0,$9c(a6)
+	move.w	#$20,$DFF09C	; poll irq bit
+	move.w	#$20,$DFF09C	; KONEY REFACTOR
 	.notvb:	
-	movem.l	(sp)+,d0/a6		; restore
 	rte
+
+ClearScreen:			; a1=screen destination address to clear
+	bsr	WaitBlitter
+	clr.w	BLTDMOD			; destination modulo
+	move.l	#$01000000,BLTCON0		; set operation type in BLTCON0/1
+	move.l	A1,BLTDPTH		; destination address
+	move.l	#h*64+bpl/2,BLTSIZE		; blitter operation size
+	rts
 
 __WIPE_PLANE:				; a1=screen destination address to clear
 	BSR	WaitBlitter
-	MOVE.W	#$09F0,BLTCON0		; A**,Shift 0, A -> D
-	MOVE.W	#0,BLTCON1		; Everything Normal
-	MOVE.L	#0,BLTAMOD		; Init modulo Sou. A
-	MOVE.W	#0,BLTDMOD		; Init modulo Dest D
+	MOVE.L	#$0,BLTAMOD		; Init modulo Sou. A
+	MOVE.L	#$09F00000,BLTCON0		; A**,Shift 0, A -> D
+	;MOVE.W	#0,BLTCON1		; Everything Normal
 	MOVE.L	#EMPTY_PLANE,BLTAPTH	; Source
+	ADD.L	#h/4*bpl,SCROLL_DEST
 	MOVE.L	SCROLL_DEST,BLTDPTH		; Dest
-	MOVE.W	#h*64+w/16,BLTSIZE		; Start Blitter (Blitsize)
+	MOVE.W	#h/2*64+w/16,BLTSIZE	; Start Blitter (Blitsize)
 	RTS
 
 __BLIT_VECTORS:
@@ -291,7 +308,7 @@ __BLIT_VECTORS:
 	move.w	#bpl,BLTDMOD	; BLTDMOD = 40
 	MOVE.W	#$FFFF,BLTBDAT	; BLTBDAT = pattern della linea!
 
-	MOVEQ	#23,D7
+	MOVEQ	#24,D7
 	MOVE.W	#0,XY_INIT
 	MOVE.L	KONEY_PTR,A2
 
@@ -2465,8 +2482,6 @@ __BLK_5:
 	RTS
 
 __BLK_VECTOR:
-	;MOVE.L	BGPLANE3,SCROLL_DEST
-	;BSR.W	__WIPE_PLANE
 	MOVE.L	BGPLANE3,SCROLL_DEST
 	BSR.W	__BLIT_VECTORS
 	RTS
@@ -2566,7 +2581,7 @@ __COPCOL_EDIT:
 	RTS
 
 ;********** Fastmem Data **********
-TIMELINE:		;DC.L __BLK_VECTOR,__BLK_VECTOR,__BLK_VECTOR,__BLK_VECTOR
+TIMELINE:		DC.L __BLK_VECTOR,__BLK_VECTOR,__BLK_VECTOR,__BLK_VECTOR
 		;DC.L __BLK_TEST,__BLK_TEST,__BLK_TEST,__BLK_TEST
 		;DC.L __BLK_TEST,__BLK_TEST,__BLK_TEST,__BLK_TEST
 		DC.L __BLK_BEGIN,__BLK_BEGIN,__BLK_BEGIN,__BLK_BEGIN3	; BLOCK 0/1 ARE... PLAYED TWICE? :|
@@ -2669,7 +2684,7 @@ BLIT_SIZE:	DC.W 2*64+w/2/16
 
 TOP_MARGIN:	DC.W MARGINY-16
 ANGLE:		DC.W 0
-Z_POS:		DC.W 32
+Z_POS:		DC.W 40
 Z_FACT:		DC.W Z_Shift
 CENTER:		DC.W Z_Shift
 X_TEMP:		DC.W 0
@@ -2692,7 +2707,6 @@ BGPLANE0:		DC.L PLANE0
 BGPLANE1:		DC.L PLANE1
 ;BGPLANE2:	DC.L PLANE2	; DUMMY :)
 BGPLANE3:		DC.L PLANE3	; FOR 3D
-;BGPLANE4:	DC.L PLANE4	; FOR 5 BITPLANES?
 DITHERPLANERESET:	DC.L BUFFERDITHER
 DITHERPLANE:	DC.L BUFFERDITHER
 
@@ -2876,6 +2890,7 @@ COPPER:
 	DC.W $E6,0
 	DC.W $E8,0
 	DC.W $EA,0
+	.Plane3Ptr:
 	DC.W $EC,0
 	DC.W $EE,0
 
@@ -2895,7 +2910,7 @@ COPPER:
 	DC.W $100,%1100001000000000	; MED RES FROM HERE
 
 	DC.W $FFFF,$FFFE		;magic value to end copperlist
-_COPPER:
+	._COPPER:
 
 	SECTION ChipBuffers,BSS_C	;BSS doesn't count toward exe size
 
@@ -2907,7 +2922,6 @@ BLEED2:		DS.B 32*bpl
 ;PLANE2:		DS.B h*bpl	; DUMMY :)
 PLANE3:		DS.B h*bpl	; FOR 3D
 BLEED3:		DS.B 32*bpl
-;PLANE4:		DS.B h*bpl	; FOR 5 BITPLANES?
 BUFFERDITHER:	DS.B h*bpl	; 1 plane
 EMPTY_PLANE:	DS.B h*bpl	; for clearings
 HEADER:		DS.B 12*bpl

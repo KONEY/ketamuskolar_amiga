@@ -587,7 +587,7 @@ hmn_notvolu0:
 		clr.b	trk_prevmidin(a5)			;suppress note off!
 		bra.s	hmn_smof
 hmn_nosmof:	move.b	d1,trk_prevmidin(a5)
-hmn_smof:	and.b	#$1F,d5				;clear all flag bits etc...
+hmn_smof:	and.b	#$1F,d5					;clear all flag bits etc...
 		subq.b	#1,d5				;from 1-16 to 0-15
 		move.b	d5,trk_prevmidich(a5)		;save to prev midi channel
 
@@ -748,7 +748,7 @@ syv_f0:		move.b	22(a0,d0.w),trk_initvolxspd(a5)	;change volume ex. speed
 syv_f1:		move.b	22(a0,d0.w),trk_volwait(a5)		;WAI(t)
 		addq.b	#1,d0
 		bra.s	synth_endvol
-syv_f3:		move.b	22(a0,d0.w),trk_volchgspd(a5)	;set volume slide up
+syv_f3:		move.b	22(a0,d0.w),trk_volchgspd(a5)		;set volume slide up
 		bra.s	synth_inccnt
 syv_f2:		move.b	22(a0,d0.w),d1
 		neg.b	d1
@@ -832,7 +832,7 @@ syw_f7:		move.b	-8(a0,d0.w),d1
 		bra.s	synth_incwfc
 syw_fe:		move.b	-8(a0,d0.w),d0			;jump (JMP)
 		bra.s	synth_getwfcmd
-syw_fc:		move.w	d0,trk_arpsoffs(a5)		;new arpeggio begin
+syw_fc:		move.w	d0,trk_arpsoffs(a5)			;new arpeggio begin
 		move.w	d0,trk_arpgoffs(a5)
 synth_findare:	addq.b	#1,d0
 		tst.b	-9(a0,d0.w)
@@ -859,7 +859,7 @@ syw_f3:		move.b	-8(a0,d0.w),d1			;set slide up
 syw_f6:		clr.w	trk_perchg(a5)			;reset period
 		move.w	trk_prevper(a5),d5
 		bra.w	synth_getwfcmd
-syw_fa:		move.b	-8(a0,d0.w),trk_volcmd+1(a5)	;JVS (jump volume sequence)
+syw_fa:		move.b	-8(a0,d0.w),trk_volcmd+1(a5)		;JVS (jump volume sequence)
 		clr.b	trk_volwait(a5)
 		bra.w	synth_incwfc
 syw_ff:		subq.b	#1,d0				;pointer = END - 1
@@ -904,7 +904,8 @@ sinetable:		dc.b	0,25,49,71,90,106,117,125,127,125,117,106,90,71,49
 		dc.b	-106,-90,-71,-49,-25,0
 		EVEN
 
-_IntHandler:	movem.l	d2-d7/a2-a6,-(sp)
+_IntHandler:	;MOVE.W	$DFF006,$DFF180			; show rastertime left down to $12c
+		movem.l	d2-d7/a2-a6,-(sp)
 	IFNE	CIAB|VBLANK
 		movea.l	a1,a6				;get data base address (int_Data)
 	ENDC
@@ -1063,6 +1064,7 @@ plr_loop2_end:	addq.w	#1,d7
 nonewnote:	bsr.w	DoFX
 plr_endfx:	bsr	_StartDMA				;turn on DMA
 plr_exit:		movem.l	(sp)+,d2-d7/a2-a6
+		;MOVE.W	#$0000,$DFF180
 	IFNE	VBLANK
 		moveq	#0,d0
 	ENDC
@@ -1078,7 +1080,7 @@ AdvSngPtr:	move.l	mmd_pblock(a2),fxplineblk-DB(a6)	;store pline/block for fx
 plr_advlinenum:	move.w	mmd_pline(a2),d1			;get current line #
 		addq.w	#1,d1				;advance line number
 		ADDI.W	#1,MED_STEPSEQ_POS		;INCREASE STEPSEQ | KONEY
-plr_linenumset:	cmp.w	numlines-DB(a6),d1 		;advance block?
+plr_linenumset:	cmp.w	numlines-DB(a6),d1 			;advance block?
 		bhi.s	plr_chgblock			;yes.
 		tst.b	nextblock-DB(a6)			;command F00/1Dxx?
 		beq.w	plr_nochgblock			;no, don't change block
@@ -1100,7 +1102,7 @@ plr_skipseq:	move.w	mmd_pseq(a2),d0			;actually stored as << 2
 		tst.b	nextblock-DB(a6)
 		bmi.s	plr_noadvseq			;Bxx sets nextblock to -1
 		addq.w	#1,d0				;advance sequence number
-plr_noadvseq:	cmp.w	40(a0),d0			;is this the highest seq number??
+plr_noadvseq:	cmp.w	40(a0),d0				;is this the highest seq number??
 		blt.s	plr_notagain			;no.
 ; -------- CHANGE SECTION ------------------------------------------------
 		move.w	mmd_psecnum(a2),d0		;get section number
@@ -1108,7 +1110,7 @@ plr_noadvseq:	cmp.w	40(a0),d0			;is this the highest seq number??
 		cmp.w	msng_songlen(a4),d0		;highest section?
 		blt.s	plr_nohisec
 		moveq	#0,d0				;yes.
-plr_nohisec:	move.w	d0,mmd_psecnum(a2)		;push back.
+plr_nohisec:	move.w	d0,mmd_psecnum(a2)			;push back.
 		add.w	d0,d0
 		movea.l	msng_sections(a4),a0		;section table
 		move.w	0(a0,d0.w),d0			;new playseqlist number
@@ -1118,7 +1120,7 @@ plr_nohisec:	move.w	d0,mmd_psecnum(a2)		;push back.
 		movea.l	0(a1,d0.w),a0			;a0 = ptr to new PlaySeq
 		moveq	#0,d0				;playseq OFFSET = 0
 ; -------- FETCH BLOCK NUMBER FROM SEQUENCE ------------------------------
-plr_notagain:	move.w	d0,mmd_pseqnum(a2)		;remember new playseq pos
+plr_notagain:	move.w	d0,mmd_pseqnum(a2)			;remember new playseq pos
 	IFNE	START_POS
 		CMP.W	MED_START_POS,D0			;START_POS REACHED? | KONEY
 		BLO.S	plr_chgblock			;GO INCREMENT AGAIN | KONEY
@@ -1129,11 +1131,11 @@ plr_notagain:	move.w	d0,mmd_pseqnum(a2)		;remember new playseq pos
 		bpl.s	plr_changeblk			;neg. values for future expansion
 		bra.s	plr_skipseq			;(skip them)
 ; ********* BELOW CODE FOR MMD0/MMD1 ONLY *******************************
-plr_noMMD2_0:	move.w	mmd_pseqnum(a2),d0		;get play sequence number
+plr_noMMD2_0:	move.w	mmd_pseqnum(a2),d0			;get play sequence number
 		tst.b	nextblock-DB(a6)
 		bmi.s	plr_noadvseq_b			;Bxx sets nextblock to -1
 		addq.w	#1,d0				;advance sequence number
-plr_noadvseq_b:	cmp.w	msng_songlen(a4),d0		;is this the highest seq number??
+plr_noadvseq_b:	cmp.w	msng_songlen(a4),d0			;is this the highest seq number??
 		blt.s	plr_notagain_b			;no.
 		moveq	#0,d0				;yes: restart song
 plr_notagain_b:	move.b	d0,mmd_pseqnum+1(a2)		;remember new playseq-#
@@ -3195,11 +3197,6 @@ t463d:		ds.b	T415SZ
 trackdataptrs:	dc.l	t03d,t03d+T03SZ,t03d+2*T03SZ,t03d+3*T03SZ
 ; Build pointer table. This works on Devpac assembler, other assemblers
 ; may need modifications.
-
-		dc.l	t463d+0
-		dc.l	t463d+1
-		dc.l	t463d+2
-		dc.l	t463d+3
 
 ; MODIFICATION FOR ASM-PRO
 ;	DC.L t463d+0
