@@ -82,15 +82,15 @@ v1.0 - AreXX script by www.KONEY.org 2020
 -----------------------
 
 BLOCKS TESTS:
-__BLK_0*
+__BLK_0
 __BLK_1
-__BLK_2*
+__BLK_2
 __BLK_3?
 __BLK_5?
 __BLK_GLITCH?
 __BLK_TEST_RESET?
 __BLK_KICK_RESET??
-__BLK_1_4_TEST*
+__BLK_1_4_TEST
 __BLK_PLASMA!
 __BLK_TEST
-__BLK_TEST_Y?
+__BLK_TEST_Y*
