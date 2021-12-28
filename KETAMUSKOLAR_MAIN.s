@@ -5,7 +5,6 @@
 	INCLUDE	"PhotonsMiniWrapper1.04.s"
 	INCLUDE	"med/med_feature_control.i"	; MED CFGs
 ;********** Constants **********
-w_real		EQU 320
 w		EQU 320		; screen width
 h		EQU 234		; screen height
 bpls		EQU 4		; depth
@@ -20,8 +19,8 @@ vbarwbpl		EQU w/10/16
 X_SPLIT_SLICE	EQU 18
 X_SPLIT2X_SLICE	EQU 13
 TXT_FRMSKIP 	EQU 4
-MARGINX		EQU (w/2)
-MARGINY		EQU (h/2)
+MARGINX		EQU w/2
+MARGINY		EQU h/4
 TrigShift		EQU 7
 PXLSIDE		EQU 16
 Z_Shift		EQU PXLSIDE*5/2	; 5x5 obj
@@ -36,7 +35,7 @@ VarTimesTrig MACRO				;3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(Ang
 	ENDM
 ;********** Demo **********			; Demo-specific non-startup code below.
 Demo:					; a4=VBR, a6=Custom Registers Base addr
-	;MOVE.W	#$10,MED_START_POS		; skip to pos# after first block
+	MOVE.W	#$8,MED_START_POS		; skip to pos# after first block
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
 	MOVE.W	#%1110000000100000,INTENA
@@ -165,9 +164,6 @@ Demo:					; a4=VBR, a6=Custom Registers Base addr
 	MOVE.L	#COPPER,COP1LC
 ;********************  main loop  ********************
 MainLoop:
-	BSR.W	__SET_MED_VALUES
-	;MOVE.L	BGPLANE3,SCROLL_DEST
-	;BSR.W	__WIPE_PLANE
 	move.w	#$12c,d0			; No buffering, so wait until raster
 	bsr.w	WaitRaster		; is below the Display Window.
 	;*--- swap buffers ---*
@@ -193,6 +189,7 @@ MainLoop:
 	;MOVEQ	#0,D1
 	;BSR.W	PokePtrs
 	; do stuff here :)
+	BSR.W	__SET_MED_VALUES
 
 	SONG_BLOCKS_EVENTS:
 	;* FOR TIMED EVENTS ON BLOCK ****
@@ -267,6 +264,7 @@ __WIPE_PLANE:				; a1=screen destination address to clear
 	MOVE.L	#EMPTY_PLANE,BLTAPTH	; Source
 	ADD.L	#h/4*bpl,SCROLL_DEST
 	MOVE.L	SCROLL_DEST,BLTDPTH		; Dest
+	MOVE.W	#$8400,DMACON		; BLIT NASTY ENABLE
 	MOVE.W	#h/2*64+w/16,BLTSIZE	; Start Blitter (Blitsize)
 	RTS
 
@@ -299,15 +297,15 @@ __BLIT_VECTORS:
 	MOVE.W	D7,CENTER
 	; **** END VALUES ****
 
-	moveq.l	#-1,d5
-	move.l	d5,BLTAFWM	; BLTAFWM/BLTALWM = $FFFF
-	move.w	#$8000,BLTADAT	; BLTADAT = $8000
-	move.w	#bpl,BLTCMOD	; BLTCMOD = 40
-	move.w	#bpl,BLTDMOD	; BLTDMOD = 40
+	MOVE.W	#$400,DMACON	; BLIT NASTY DISABLE
+	MOVE.L	#$FFFFFFFF,BLTAFWM	; BLTAFWM/BLTALWM = $FFFF
+	MOVE.W	#$8000,BLTADAT	; BLTADAT = $8000
+	MOVE.W	#bpl,BLTCMOD	; BLTCMOD = 40
+	MOVE.W	#bpl,BLTDMOD	; BLTDMOD = 40
 	MOVE.W	#$FFFF,BLTBDAT	; BLTBDAT = pattern della linea!
 
-	MOVEQ	#24,D7
-	MOVE.W	#0,XY_INIT
+	MOVEQ	#$F,D7
+	MOVE.W	#$0,XY_INIT
 	MOVE.L	KONEY_PTR,A2
 
 	.fetchCoordz:
@@ -317,12 +315,6 @@ __BLIT_VECTORS:
 	MOVE.L	D0,D1		; QUICKEST RESET
 	MOVE.W	(A2)+,D0		; X1
 	MOVE.W	(A2)+,D1		; Y1
-	; **** ROTATING??? ****
-	MOVE.W	ANGLE,D7
-	LEA.L	SinTbl(pc),A0
-	MOVE.W	(A0,D7),D3
-	LEA.L	CosTbl(pc),A0
-	MOVE.W	(A0,D7),D4
 
 	; NO NEED TO OPT BECAUSE FIRST AND LAST = 0,0!!
 	; **** OPTIMIZATION!! ****
@@ -331,8 +323,8 @@ __BLIT_VECTORS:
 	BNE.S	.notFirstLoop
 	MOVE.W	#1,XY_INIT
 	; **** Z-POSITION ****
-	DIVU.W	Z_FACT,D0
-	DIVU.W	Z_FACT,D1
+	DIVU.W	D4,D0
+	DIVU.W	D4,D1
 	SUB.W	CENTER,D0
 	SUB.W	CENTER,D1
 	MOVE.W	D0,X_TEMP
@@ -342,6 +334,13 @@ __BLIT_VECTORS:
 
 	MOVE.W	X_TEMP,D0
 	MOVE.W	Y_TEMP,D1
+
+	; **** ROTATING??? ****
+	MOVE.W	ANGLE,D7
+	LEA.L	SinTbl(pc),A0
+	MOVE.W	(A0,D7),D3
+	LEA.L	CosTbl(pc),A0
+	MOVE.W	(A0,D7),D4
 
 	BSR.W	__ROTATE
 
@@ -652,7 +651,7 @@ __BLIT_GLITCH_SLICE:
 	MOVE.L	SCROLL_DEST,A4
 
 	.waitData:
-	ADD.L	#bpl,A3			; GO TO NEXT
+	ADD.L	#bpl*2,A3			; GO TO NEXT
 	TST.L	(A3)			; IF LINE EMPTY
 	BEQ.S	.waitData			
 	.dataOk:
@@ -680,7 +679,7 @@ __BLIT_GLITCH_BAND:
 	MOVE.L	SCROLL_DEST,A4
 
 	.waitData:
-	ADD.L	#bpl,A3			; GO TO NEXT
+	ADD.L	#bpl*2,A3			; GO TO NEXT
 	TST.L	(A3)			; IF LINE EMPTY
 	BEQ.S	.waitData			
 	.dataOk:
@@ -712,7 +711,7 @@ __BLIT_GLITCH_TILE:
 
 	; ## MAIN BLIT ####
 	.waitData:
-	ADD.L	#bpl,A3			; GO TO NEXT
+	ADD.L	#bpl*2,A3			; GO TO NEXT
 	TST.L	(A3)			; IF LINE EMPTY
 	BEQ.S	.waitData			
 	.dataOk:
@@ -924,7 +923,8 @@ __SCROLL_Y_HALF:
 	;ADD.B	#1,D1			; FIX FOR -1 VALUES
 	SUB.W	D1,D4
 	;SUB.W	#1,D4			; FIX FOR -1 VALUES
-	MULU.W	#64,D4
+	;MULU.W	#64,D4
+	LSL.W	#6,D4			; X64 OPTIMIZED
 	ADD.W	#bpl/2,D4
 
 	MULU.W	#bpl,D1
@@ -1021,7 +1021,8 @@ __SCROLL_Y_FULL:
 	ADD.B	#1,D1			; FIX FOR -1 VALUES
 	SUB.W	D1,D4
 	SUB.W	#1,D4			; FIX FOR -1 VALUES
-	MULU.W	#64,D4
+	;MULU.W	#64,D4
+	LSL.W	#6,D4			; X64 OPTIMIZED
 	ADD.W	#wblit/2,D4
 
 	MULU.W	#bpl,D1
@@ -1134,7 +1135,8 @@ __SCROLL_Y_PROGR:
 	.blitLoop:
 	MOVE.W	#h,D4
 	SUB.W	D3,D4
-	MULU.W	#64,D4
+	;MULU.W	#64,D4
+	LSL.W	#6,D4			; X64 OPTIMIZED
 	ADD.W	#vbarwbpl,D4		; #h*64+vbarwbpl,BLTSIZE	; BLTSIZE
 	MOVE.W	#bpl,D1
 	;ADD.W	#1,D3			; TO SPEED UP
@@ -2476,6 +2478,7 @@ __BLK_5:
 
 __BLK_VECTOR:
 	MOVE.L	BGPLANE3,SCROLL_DEST
+	BSR.W	__WIPE_PLANE
 	BSR.W	__BLIT_VECTORS
 	RTS
 
@@ -2584,7 +2587,7 @@ __COPCOL_EDIT:
 
 ;********** Fastmem Data **********
 TIMELINE:		;DC.L __BLK_VECTOR,__BLK_VECTOR,__BLK_VECTOR,__BLK_VECTOR
-		DC.L __BLK_MULTI,__BLK_MULTI,__BLK_MULTI,__BLK_MULTI
+		;DC.L __BLK_MULTI,__BLK_MULTI,__BLK_MULTI,__BLK_MULTI
 		;DC.L __BLK_1_4_TEST,__BLK_1_4_TEST,__BLK_1_4_TEST,__BLK_1_4_TEST
 		DC.L __BLK_BEGIN,__BLK_BEGIN,__BLK_BEGIN,__BLK_BEGIN3	; BLOCK 0/1 ARE... PLAYED TWICE? :|
 		DC.L __BLK_BEGIN3,__BLK_BEGIN3,__BLK_BEGIN3,__BLK_BEGIN3_PRE
@@ -2831,7 +2834,7 @@ TEXT:		INCLUDE "textscroller.i"
 		INCLUDE "med/MED_PlayRoutine.i"
 	;#######################################################
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
-MED_MODULE:	INCBIN "med/KETAMUSkOLAR_2020FIX2.med"
+MED_MODULE:	INCBIN "med/KETAMUSkOLAR_2020FIX3.med"	; FIX4=REDUCED FREQ
 _chipzero:	DC.L 0
 _MED_MODULE:
 
@@ -2931,7 +2934,7 @@ BLEED2:		DS.B 32*bpl
 PLANE3:		DS.B h*bpl	; FOR 3D
 BLEED3:		DS.B 32*bpl
 BUFFERDITHER:	DS.B h*bpl	; 1 plane
-EMPTY_PLANE:	DS.B h*bpl	; for clearings
+EMPTY_PLANE:	DS.B h/2*bpl	; for clearings
 HEADER:		DS.B 12*bpl
 FOOTER:		DS.B 11*bpl*2	; HI-RES
 FOOTER_END:	DS.B 0		; ??
