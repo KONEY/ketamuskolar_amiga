@@ -65,12 +65,12 @@ reloci:					; ** RELOC SAMPLES **
 	IFEQ	SPLIT_RELOCS
 	bsr.s	relocentr			; original subroutine
 	ENDC
-	move.l	-4(a0),d3		; sample ptr
+	move.l	-4(a0),d3			; sample ptr
 	beq.s	.nosyn
 	move.l	d3,a3
 	tst.w	4(a3)
 	bpl.s	.nosyn			; type >= 0
-	move.w	20(a3),d2		; number of waveforms
+	move.w	20(a3),d2			; number of waveforms
 	lea	278(a3),a3		; ptr to wf ptrs
 	subq.w	#1,d2
 	.relsyn:
@@ -265,7 +265,7 @@ choff_midi:	clr.b	trk_prevmidin(a1)
 		bmi.s	notamigatrk
 		move.b	trk_prevmidich(a1),(a0)	;prev midi channel
 		clr.b	2(a0)
-		or.b	#$90,(a0)		;note off
+		or.b	#$90,(a0)			;note off
 		moveq	#3,d0
 		bra.w	_AddMIDIData
 	ENDC
@@ -358,7 +358,7 @@ nodmaoff:		subq.b	#1,d1
 		move.b	d3,-(a0)
 		bmi.s	noprevmidi
 		move.b	trk_prevmidich(a5),-(a0)	;prev midi channel
-		or.b	#$90,(a0)		;note off
+		or.b	#$90,(a0)			;note off
 		move.w	d1,-(sp)
 		moveq	#3,d0
 		bsr.w	_AddMIDId
@@ -406,7 +406,7 @@ endpttest:
 		moveq	#0,d3
 		moveq	#6,d4				;skip (stereo+hdr) offset
 		lea	_periodtable+32-DB(a6),a1
-		move.b	trk_finetune(a5),d2		;finetune value
+		move.b	trk_finetune(a5),d2			;finetune value
 		add.b	d2,d2
 		add.b	d2,d2				;multiply by 4...
 		ext.w	d2				;extend
@@ -510,7 +510,7 @@ pn_nooffsovf:	movea.l	trk_audioaddr(a5),a1		;base of this channel's regs
 		lea	flags-DB(a6),a0
 		btst	#0,0(a0,d4.w)			;test flags.SSFLG_LOOP
 		bne.s	repeat
-		move.l	#_chipzero,trk_sampleptr(a5)	;pointer of zero word
+		move.l	#_chipzero,trk_sampleptr(a5)		;pointer of zero word
 		move.w	#1,trk_samplelen(a5)		;length: 1 word
 		sub.l	d0,d1
 		lsr.l	#1,d1				;shift length right
@@ -543,7 +543,7 @@ handlenonstdout:
 		moveq	#0,d0
 		move.w	trk_soffset(a5),d0
 		lea	_periodtable+32-DB(a6),a1
-		move.b	trk_finetune(a5),d2		;finetune value
+		move.b	trk_finetune(a5),d2			;finetune value
 		add.b	d2,d2
 		add.b	d2,d2
 		ext.w	d2
@@ -642,8 +642,8 @@ hmn_loop100:	sub.w	#100,d0
 		cmp.w	#100,d0
 		bge.s	hmn_loop100
 		lea	preschgdata+2-DB(a6),a0
-		move.b	d0,(a0)			;push the <= 99 number
-		move.b	d3,-(a0)			;push the >= 100 number
+		move.b	d0,(a0)				;push the <= 99 number
+		move.b	d3,-(a0)				;push the >= 100 number
 		moveq	#3,d0
 		bra.s	hmn_sendpreset
 	ENDC
@@ -652,14 +652,14 @@ hmn_loop100:	sub.w	#100,d0
 ; -------- TRIGGER SYNTH NOTE, CLEAR PARAMETERS --------------------------
 handleSynthnote:	move.b	d1,trk_prevnote2(a5)
 		move.l	a0,trk_synthptr(a5)
-		cmp.w	#-2,4(a0)			;HYBRID??
+		cmp.w	#-2,4(a0)				;HYBRID??
 		bne.s	hSn_nossn
 		st	trk_synthtype(a5)
 		movea.l	278(a0),a0			;yep, get the waveform pointer
 		bra.w	tlwtst0				;go and play it
 hSn_nossn:	move.b	#1,trk_synthtype(a5)
 		lea	_periodtable+32-DB(a6),a1
-		move.b	trk_finetune(a5),d0		;finetune value
+		move.b	trk_finetune(a5),d0			;finetune value
 		add.b	d0,d0
 		add.b	d0,d0				;multiple by 4...
 		ext.w	d0				;extend
@@ -792,7 +792,7 @@ synth_wftbl:	moveq	#0,d0
 		bgt.w	synth_arpeggio			;not yet...
 		move.b	trk_initwfxspd(a5),trk_wfxcnt(a5)	;restore speed counter
 		move.w	trk_wfcmd(a5),d0			;get table pos offset
-		move.w	trk_wfchgspd(a5),d1		;CHU/CHD ??
+		move.w	trk_wfchgspd(a5),d1			;CHU/CHD ??
 		beq.s	synth_tstwfwai			;0 = no change
 wytanwet:		add.w	trk_perchg(a5),d1			;add value to current change
 		move.w	d1,trk_perchg(a5)			;remember amount of change
@@ -899,7 +899,7 @@ synth_rts:	add.w	trk_perchg(a5),d5
 synth_pern2h:	move.l	(sp)+,a3
 		rts
 	ENDC
-sinetable:		dc.b	0,25,49,71,90,106,117,125,127,125,117,106,90,71,49
+sinetable:	dc.b	0,25,49,71,90,106,117,125,127,125,117,106,90,71,49
 		dc.b	25,0,-25,-49,-71,-90,-106,-117,-125,-127,-125,-117
 		dc.b	-106,-90,-71,-49,-25,0
 		EVEN
@@ -1010,7 +1010,7 @@ plr_nngok:	and.w	#$3F,d3
 		lea	0(a4,d3.w),a0			;a0 contains now address of it
 		move.l	a0,trk_previnstra(a5)
 ; ---------------- get volume
-		move.b	inst_svol(a0),trk_prevvol(a5)	;vol of this instr
+		move.b	inst_svol(a0),trk_prevvol(a5)		;vol of this instr
 		move.b	inst_strans(a0),trk_stransp(a5)
 ; ---------------- remember some values of this instrument
 		lea	holdvals-DB(a6),a0
@@ -1079,7 +1079,7 @@ AdvSngPtr:	move.l	mmd_pblock(a2),fxplineblk-DB(a6)	;store pline/block for fx
 		bra.s	plr_linenumset
 plr_advlinenum:	move.w	mmd_pline(a2),d1			;get current line #
 		addq.w	#1,d1				;advance line number
-		ADDI.W	#1,MED_STEPSEQ_POS		;INCREASE STEPSEQ | KONEY
+		ADDI.W	#1,MED_STEPSEQ_POS			;INCREASE STEPSEQ | KONEY
 plr_linenumset:	cmp.w	numlines-DB(a6),d1 			;advance block?
 		bhi.s	plr_chgblock			;yes.
 		tst.b	nextblock-DB(a6)			;command F00/1Dxx?
@@ -1088,7 +1088,7 @@ plr_linenumset:	cmp.w	numlines-DB(a6),d1 			;advance block?
 plr_chgblock:	tst.b	nxtnoclrln-DB(a6)
 		bne.s	plr_noclrln
 		moveq	#0,d1				;clear line number
-		;MOVE.W	#0,MED_STEPSEQ_POS		;RESET STEPSEQ | KONEY
+		;MOVE.W	#0,MED_STEPSEQ_POS			;RESET STEPSEQ | KONEY
 plr_noclrln:	tst.w	mmd_pstate(a2)			;play block or play song
 		bpl.w	plr_nonewseq			;play block only...
 		cmp.b	#'2',3(a2)			;MMD2?
@@ -1098,16 +1098,16 @@ plr_noclrln:	tst.w	mmd_pstate(a2)			;play block or play song
 plr_skipseq:	move.w	mmd_pseq(a2),d0			;actually stored as << 2
 		movea.l	msng_pseqs(a4),a1			;ptr to playseqs
 		movea.l	0(a1,d0.w),a0			;a0 = ptr to curr PlaySeq
-		move.w	mmd_pseqnum(a2),d0		;get play sequence number
+		move.w	mmd_pseqnum(a2),d0			;get play sequence number
 		tst.b	nextblock-DB(a6)
 		bmi.s	plr_noadvseq			;Bxx sets nextblock to -1
 		addq.w	#1,d0				;advance sequence number
 plr_noadvseq:	cmp.w	40(a0),d0				;is this the highest seq number??
 		blt.s	plr_notagain			;no.
 ; -------- CHANGE SECTION ------------------------------------------------
-		move.w	mmd_psecnum(a2),d0		;get section number
+		move.w	mmd_psecnum(a2),d0			;get section number
 		addq.w	#1,d0				;increase..
-		cmp.w	msng_songlen(a4),d0		;highest section?
+		cmp.w	msng_songlen(a4),d0			;highest section?
 		blt.s	plr_nohisec
 		moveq	#0,d0				;yes.
 plr_nohisec:	move.w	d0,mmd_psecnum(a2)			;push back.
@@ -1144,7 +1144,7 @@ plr_notagain_b:	move.b	d0,mmd_pseqnum+1(a2)		;remember new playseq-#
 		BLO.W	plr_chgblock			;GO INCREMENT AGAIN | KONEY
 		MOVE.W	#0,MED_START_POS			;SAVE START POSITION | KONEY
 	ENDC
-		lea	msng_playseq(a4),a0		;offset of sequence table
+		lea	msng_playseq(a4),a0			;offset of sequence table
 		move.b	0(a0,d0.w),d0			;get number of the block
 ; ********* BELOW CODE FOR BOTH FORMATS *********************************
 plr_changeblk:
@@ -1165,7 +1165,7 @@ plr_nochgblock:	move.w	d1,mmd_pline(a2)			;set new line number
 		move.w	mmd_pblock(a2),d0			;pblock
 		bsr.w	GetBlockAddr
 		move.w	mmd_pline(a2),d0			;play line
-		move.b	msng_tempo2(a4),d3		;interrupts/note
+		move.b	msng_tempo2(a4),d3			;interrupts/note
 	IFNE	PLAYMMD0
 		cmp.b	#'1',3(a2)
 		bge.s	plr_mmd1_2
@@ -1298,7 +1298,7 @@ f_0f:		tst.b	d4				;test effect qual..
 	IFNE	CIAB
 		moveq	#0,d0				;will happen!!!
 		move.b	d4,d0
-		bsr	_SetTempo			;change The Tempo
+		bsr	_SetTempo				;change The Tempo
 	ENDC
 fx:		rtplay
 ; ---------------- no, it was FFx, something special will happen!!
@@ -1360,7 +1360,7 @@ isfxff:		cmp.b	#$ff,d4				;note off??
 		move.l	(sp)+,a1
 f_ff_rts:		rtplay
 ; ---------------- F00, called Pattern Break in ST
-fx0fchgblck:	move.b	#1,nextblock-DB(a6)		;next block????...YES!!!! (F00)
+fx0fchgblck:	move.b	#1,nextblock-DB(a6)			;next block????...YES!!!! (F00)
 		bra.s	f_ff_rts
 ; ---------------- was not Fxx, then it's something else!!
 f_0e:
@@ -1473,7 +1473,7 @@ f_0b:
 chk0b_mmd2:	move.w	mmd_pseq(a2),d0			;get seq number
 		movea.l	msng_pseqs(a4),a0			;ptr to playseqs
 		movea.l	0(a0,d0.w),a0			;a0 = ptr to curr PlaySeq
-		cmp.w	40(a0),d4			;test song length
+		cmp.w	40(a0),d4				;test song length
 		bhi.s	f_0b_rts
 chk0b_end:
 	ENDC
@@ -1502,7 +1502,7 @@ f_03:
 		add.b	trk_stransp(a5),d0			;and instrument transpose
 		bmi.s	f_03_rts				;again.. too low
 		add.w	d0,d0
-		move.w	0(a0,d0.w),trk_porttrgper(a5)	;period of this note is the target
+		move.w	0(a0,d0.w),trk_porttrgper(a5)		;period of this note is the target
 plr_setfx3spd:	tst.b	d4				;qual??
 		beq.s	f_03_rts				;0 -> do nothing
 		move.b	d4,trk_prevportspd(a5)		;store speed
@@ -1747,7 +1747,7 @@ HoldAndFade:
 		clr.b	trk_volwait(a5)			;abort WAI
 		bra.s	plr_haf_noholdexp
 	ENDC
-plr_nosyndec:	move.b	trk_decay(a5),trk_fadespd(a5)	;set fade...
+plr_nosyndec:	move.b	trk_decay(a5),trk_fadespd(a5)		;set fade...
 		bne.s	plr_haf_noholdexp			;if > 0, don't stop sound
 		moveq	#0,d0
 		bset	d7,d0
@@ -2070,7 +2070,7 @@ plr_upv_setvol:	st	trk_tempvol(a5)
 ; -------- GetRelVol: Calculate track volume -----------------------------
 ; track # = d7, note vol = d0, song = a4
 	IFNE	RELVOL
-		mulu	trk_trackvol(a5),d0		;d0 = master v. * track v. * volume
+		mulu	trk_trackvol(a5),d0			;d0 = master v. * track v. * volume
 		lsr.w	#8,d0
 	ENDC
 		move.b	d0,ac_vol+1(a0)
@@ -2094,7 +2094,7 @@ no0ff2:		cmp.b	#$f3,d4
 		and.b	#1,d0				;is 2 or 4
 		bne.s	cF_rts
 playfxnote:	moveq	#0,d1
-		move.b	trk_currnote(a5),d1		;get note # of curr. note
+		move.b	trk_currnote(a5),d1			;get note # of curr. note
 		beq.s	cF_rts
 		move.b	trk_noteoffcnt(a5),d0		;get hold counter
 		bmi.s	pfxn_nohold			;no hold, or hold over
@@ -2160,7 +2160,7 @@ rpnewv:		rts
 ; -------- AUDIO DMA ROUTINE ---------------------------------------------
 _StartDMA:	;This small routine turns on audio DMA
 		move.w	dmaonmsk-DB(a6),d0		;dmaonmsk contains the mask of
-		beq.s	sdma_nodmaon			;the channels that must be turned on
+		beq.s	sdma_nodmaon		;the channels that must be turned on
 	IFNE	INSTR_TRACKING
 		LEA	MED_TRK_0_COUNT,A4		; #KONEY# RESET AUDIO LEVELS
 		BTST	#$0,D0
@@ -2470,7 +2470,7 @@ IM_loop1:		move.l	(a2)+,a3
 	ENDC
 		lea	holdvals,a2
 		movea.l	a0,a3
-		move.l	mmd_expdata(a0),d0	;expdata...
+		move.l	mmd_expdata(a0),d0		;expdata...
 	IFEQ	MIDI
 		beq.s	IM_clrhlddec		;none here
 	ENDC
@@ -2669,7 +2669,7 @@ PM_nextmod:	tst.l	mmd_expdata(a0)
 PM_modfound:	cmp.b	#'T',3(a0)
 		bne.s	PM_nomodT
 		move.b	#'0',3(a0)			;change MCNT to MCN0
-PM_nomodT:	movea.l	mmd_songinfo(a0),a1		;song
+PM_nomodT:	movea.l	mmd_songinfo(a0),a1			;song
 		move.b	msng_tempo2(a1),mmd_counter(a0)	;init counter
 		btst	#0,msng_flags(a1)
 		bne.s	PM_filon
@@ -2711,7 +2711,7 @@ PM_setblk:	move.w	d1,mmd_pblock(a0)
 	IFNE	CIAB
 		move.w	msng_deftempo(a1),d0	;get default tempo
 		movea.l	craddr-DB(a6),a1
-		bsr.w	_SetTempo		;set default tempo
+		bsr.w	_SetTempo			;set default tempo
 		bset	#0,(a1)			;start timer => PLAY!!
 	ENDC
 PM_end:		move.l	(sp)+,a6
@@ -2955,7 +2955,7 @@ _InitMIDIDump:	tst.b	serportalloc
 		move.w	d0,(a0)+			;store message number
 		cmpa.l	a1,a0			;queue end?
 		bne.s	idd_noresetbuff
-		lea	dumpqueue-DB(a5),a0	;reset write pointer
+		lea	dumpqueue-DB(a5),a0		;reset write pointer
 idd_noresetbuff:	move.l	a0,(a1)			;and write it back.
 		addq.w	#1,dqentries-DB(a5)
 		tst.b	sysx-DB(a5)		;already sending data?
@@ -3002,12 +3002,12 @@ sih_sysx:		move.w	#$100,d1
 
 StartNewDump:	tst.w	dqentries-DB(a5)		;queue empty?
 		beq.s	snd_exit2
-		movea.l	dqreadptr-DB(a5),a1	;get read pointer
+		movea.l	dqreadptr-DB(a5),a1		;get read pointer
 		move.w	(a1)+,d0			;get message number (D0)
 		cmpa.l	#dqwriteptr,a1		;queue end?
 		bne.s	snd_noresetbuff
-		lea	dumpqueue-DB(a5),a1	;reset write pointer
-snd_noresetbuff:	move.l	a1,dqreadptr-DB(a5)	;and write it back.
+		lea	dumpqueue-DB(a5),a1		;reset write pointer
+snd_noresetbuff:	move.l	a1,dqreadptr-DB(a5)		;and write it back.
 		subq.w	#1,dqentries-DB(a5)
 ; then attempt to search the given message (# in D0)
 		move.l	_module-DB(a5),d1
@@ -3028,7 +3028,7 @@ snd_noresetbuff:	move.l	a1,dqreadptr-DB(a5)	;and write it back.
 		movea.l	(a1),a1
 ; initialize send variables (msg addr. in A0)
 snd_found:	move.l	(a1)+,sysxleft-DB(a5)	;length
-		move.l	(a1),sysxptr-DB(a5)	;data pointer
+		move.l	(a1),sysxptr-DB(a5)		;data pointer
 		st	sysx-DB(a5)
 		rts
 snd_exit2:	clr.b	sysx-DB(a5)		;finish dump
@@ -3095,7 +3095,7 @@ miscresbase:	dc.l	0
 timerdiv:		dc.l	470000
 	IFNE	AUDDEV
 audiodevopen:	dc.b	0
-sigbitnum:		dc.b	-1
+sigbitnum:	dc.b	-1
 	ENDC
 	IFNE	MIDI
 serportalloc:	dc.b	0
@@ -3106,7 +3106,7 @@ preschgdata:	dc.l	0
 noteondata:	dc.l	0
 	ENDC
 _module:		dc.l	0
-dmaonmsk:	dc.w	0 ;\_May not be
+dmaonmsk:		dc.w	0 ;\_May not be
 	IFNE	MIDI
 bytesinnotebuff:	dc.w	0 ;/ separated!
 noteonbuff:	ds.b	(4+2)*3
@@ -3128,7 +3128,7 @@ serinterrupt:	dc.w	0,0,0,0,0
 		dc.l	serintname,buffptr,SerIntHandler
 	ENDC
 	IFNE	AUDDEV
-allocport:		dc.l	0,0	;succ, pred
+allocport:	dc.l	0,0	;succ, pred
 		dc.b	4,0	;NT_MSGPORT
 		dc.l	0	;name
 		dc.b	0,0	;flags = PA_SIGNAL
