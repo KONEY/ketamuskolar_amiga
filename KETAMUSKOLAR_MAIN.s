@@ -265,32 +265,40 @@ VBint:				; Blank template VERTB interrupt
 	rte
 
 ClearScreen:			; a1=screen destination address to clear
+	ADD.L	#h/4*bpl,A1
 	bsr	WaitBlitter
-	clr.w	BLTDMOD			; destination modulo
+	MOVE.L	#$0,BLTAMOD		; Init modulo Sou. A
 	move.l	#$01000000,BLTCON0		; set operation type in BLTCON0/1
 	move.l	A1,BLTDPTH		; destination address
-	move.l	#h*64+bpl/2,BLTSIZE		; blitter operation size
+	move.l	#h/2*64+w/16,BLTSIZE	; blitter operation size
 	rts
 
 __WIPE_PLANE:				; a1=screen destination address to clear
+	LEA	$910(A1),A1		; OPT of ADD.L #h/4*bpl,A1
+	LEA	EMPTY_PLANE,A2
 	BSR	WaitBlitter
 	MOVE.L	#$0,BLTAMOD		; Init modulo Sou. A
 	MOVE.L	#$09F00000,BLTCON0		; A**,Shift 0, A -> D
-	;MOVE.W	#0,BLTCON1		; Everything Normal
-	LEA	EMPTY_PLANE,A1
-	MOVE.L	A1,BLTAPTH		; Source
-	ADD.L	#h/4*bpl,A2
-	MOVE.L	A2,BLTDPTH		; Dest
+	MOVE.L	A2,BLTAPTH		; Source
+	MOVE.L	A1,BLTDPTH		; Dest
 	MOVE.W	#$8400,DMACON		; BLIT NASTY ENABLE
 	MOVE.W	#h/2*64+w/16,BLTSIZE	; Start Blitter (Blitsize)
+	;BSR	WaitBlitter
+	MOVE.W	#$400,DMACON		; BLIT NASTY DISABLE
 	RTS
 
 __BLIT_VECTORS:
 	;ADDI.L	#2,KONEY_PTR	; MESSES COORDZ
 	; **** ROTATION VALUES ****
 	MOVE.W	ANGLE,D2
-	ADDI.W	#$8,D2
-	CMPI.W	#$0,D2
+	MOVE.W	V_SHIFT,D1
+	MOVE.W	V_DIR,D3
+	;MULS.W	D3,D1		; NEED OPTIMIZATION
+	ASR.W	#1,D3		; EXTENDS SIGN FROM DIR
+	EOR.W	D3,D1		; FROM
+	SUB.W	D3,D1		; STACKOVERFLOW
+	ADD.W	D1,D2		; SPIN!
+	TST.W	D2
 	BGE.S	.dontResetL
 	MOVE.W	#358,D2
 	.dontResetL:
@@ -314,7 +322,7 @@ __BLIT_VECTORS:
 	MOVE.W	D7,CENTER
 	; **** END VALUES ****
 
-	MOVE.W	#$400,DMACON	; BLIT NASTY DISABLE
+	;MOVE.W	#$400,DMACON	; BLIT NASTY DISABLE
 	MOVE.L	#$FFFFFFFF,BLTAFWM	; BLTAFWM/BLTALWM = $FFFF
 	MOVE.W	#$8000,BLTADAT	; BLTADAT = $8000
 	MOVE.W	#bpl,BLTCMOD	; BLTCMOD = 40
@@ -328,7 +336,7 @@ __BLIT_VECTORS:
 	.fetchCoordz:
 	MOVEM.L	D7,-(SP)
 
-	MOVEQ.L	#0,D0		; QUICKEST RESET
+	MOVEQ.L	#$0,D0		; QUICKEST RESET
 	MOVE.L	D0,D1		; QUICKEST RESET
 	MOVE.W	(A2)+,D0		; X1
 	MOVE.W	(A2)+,D1		; Y1
@@ -336,7 +344,7 @@ __BLIT_VECTORS:
 	; NO NEED TO OPT BECAUSE FIRST AND LAST = 0,0!!
 	; **** OPTIMIZATION!! ****
 	MOVEM.W	XY_INIT,D7
-	CMPI.W	#0,D7
+	TST.W	D7
 	BNE.S	.notFirstLoop
 	MOVE.W	#1,XY_INIT
 	; **** Z-POSITION ****
@@ -460,7 +468,7 @@ Drawline:
 
 	.DRAWL:
 	;mulu.w	#bpl,d1		; offset Y
-	LEA	BPL_PRECALC,A1		; TABLE OPTIMIZING
+	LEA	BPL_PRECALC,A1	; TABLE OPTIMIZING
 	ADD.W	D1,D1
 	MOVE.W	(A1,D1.W),D1
 	add.w	d1,a0		; aggiunge l'offset Y all'indirizzo
@@ -472,7 +480,7 @@ Drawline:
 				; in BLTCON0. Con questo valore di LF ($4A)
 				; si disegnano linee in EOR con lo sfondo.
 				; #$0BCA
-
+				; $77 $F5 $F3 $C0 $05
 	lsr.w	#4,d1		; cancella i 4 bit bassi della X
 	add.w	d1,d1		; ottiene l'offset X in bytes
 	add.w	d1,a0		; aggiunge l'offset X all'indirizzo
@@ -2517,7 +2525,7 @@ __BLK_5:
 	RTS
 
 __BLK_VECTOR:
-	MOVE.L	BGPLANE3,A2		; SCROLL_DEST
+	MOVE.L	BGPLANE3,A1		; SCROLL_DEST
 	BSR.W	__WIPE_PLANE
 	MOVE.L	BGPLANE3,SCROLL_DEST
 	BSR.W	__BLIT_VECTORS
@@ -2642,6 +2650,7 @@ TIMELINE:		;DC.L __BLK_VECTOR,__BLK_VECTOR,__BLK_VECTOR,__BLK_VECTOR
 		DC.L __BLK_PLASMA,__BLK_PLASMA,__BLK_PLASMA,__BLK_PLASMA
 		DC.L __BLK_PLASMA,__BLK_PLASMA,__BLK_PLASMA,__BLK_DIAG_FLUID
 		DC.L __BLK_MULTI_VECTOR,__BLK_MULTI_VECTOR,__BLK_MULTI_VECTOR,__BLK_MULTI_VECTOR
+		DC.L __BLK_MULTI_VECTOR,__BLK_MULTI_VECTOR,__BLK_MULTI_VECTOR,__BLK_MULTI_VECTOR
 		DC.L __BLK_GLITCH,__BLK_GLITCH,__BLK_GLITCH,__BLK_GLITCH,__BLK_GLITCH,__BLK_GLITCH
 		DC.L __BLK_TEST_Y,__BLK_SCREEN2,__BLK_SCREEN2,__BLK_SCREEN2,__BLK_SCREEN2
 		DC.L __BLK_BEGIN,__BLK_SCREEN2,__BLK_BEGIN,__BLK_SCREEN2
@@ -2683,6 +2692,9 @@ Y_SHIFT_LFO:	DC.B -1
 Y_SHIFT_LFO_MIN:	DC.B -1
 Y_SHIFT_LFO_MAX:	DC.B 15
 Y_LFO_INVERT_DIR:	DC.B 0
+
+V_DIR:		DC.W 1	; -1=LEFT 1=RIGHT
+V_SHIFT:		DC.W 8	; VECTOR ANGLE ADDER
 
 X_DIR:		DC.B 1	; -1=LEFT 1=RIGHT
 Y_DIR:		DC.B -1	; -1=LEFT 1=RIGHT
@@ -2829,13 +2841,17 @@ KONEY:		DC.L %10001011111011111011111011011000
 
 KONEY_PTR:	DC.L KONEY_OPT
 KONEY_OPT:	; OPTIMIZED
-		DC.W 0,0,0,5
+		DC.W 4,2,0,5
 		DC.W 0,5,5,5
+		DC.W 4,2,2,2
+		DC.W 2,2,2,3
+		DC.W 2,3,3,3
+		DC.W 3,3,3,2
 		DC.W 5,5,4,0
 		DC.W 4,0,0,1
 		DC.W 0,1,1,4
 		DC.W 1,4,4,4
-		DC.W 4,4,4,2
+		DC.W 4,5,4,1
 		DC.W 4,2,2,2
 		DC.W 2,2,2,3
 		DC.W 2,3,3,3

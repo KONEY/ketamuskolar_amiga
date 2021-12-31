@@ -961,7 +961,7 @@ plr_noblkdelay:	move.w	mmd_pblock(a2),d0
 ; -------- TRACK LOOP (FOR EACH TRACK) -----------------------------------
 	IFNE	INSTR_TRACKING				; ## KONEY MOD ##
 		MOVEM.L	A2,-(SP)
-		LEA	MED_TRK_0_INST,A2			; KONEY
+		LEA	MED_TRK_0_INST(PC),A2			; KONEY
 	ENDC						; ## KONEY MOD ##
 plr_loop0:	movea.l	(a1)+,a5				;get address of this track's struct
 ; ---------------- get the note numbers
@@ -2162,7 +2162,7 @@ _StartDMA:	;This small routine turns on audio DMA
 		move.w	dmaonmsk-DB(a6),d0		;dmaonmsk contains the mask of
 		beq.s	sdma_nodmaon		;the channels that must be turned on
 	IFNE	INSTR_TRACKING
-		LEA	MED_TRK_0_COUNT,A4		; #KONEY# RESET AUDIO LEVELS
+		LEA	MED_TRK_0_COUNT(PC),A4		; #KONEY# RESET AUDIO LEVELS
 		BTST	#$0,D0
 		BEQ.S	.noCh0
 		MOVE.W	#$0,(A4)

@@ -73,6 +73,7 @@ Start:
 	dc.b "graphics.library",0,0
 
 WaitEOF:				;wait for end of frame
+	RTS
 	bsr.s WaitBlitter
 	move.w #$138,d0
 WaitRaster:			;Wait for scanline d0. Trashes d1.
