@@ -32,7 +32,7 @@ VarTimesTrig MACRO				; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(An
 	ENDM
 ;********** Demo **********			; Demo-specific non-startup code below.
 Demo:					; a4=VBR, a6=Custom Registers Base addr
-	;MOVE.W	#$F,MED_START_POS		; skip to pos# after first block
+	;MOVE.W	#$7,MED_START_POS		; skip to pos# after first block
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
 	MOVE.W	#%1110000000100000,INTENA
@@ -172,9 +172,7 @@ Demo:					; a4=VBR, a6=Custom Registers Base addr
 	ADD.W	#bpl,D0
 	CMP.W	#bpl*h,(A2)+
 	BLO.S	.loop
-
 	; ## PRECALCULATE BPL OFFSETS ##
-
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
 
 	JSR	_startmusic
@@ -256,21 +254,24 @@ PokePtrs:					; Generic, poke ptrs into copper list
 	dbf	d1,.bpll
 	rts
 
-VBint:				; Blank template VERTB interrupt
-	btst	#5,$DFF01F	; check if it's our vertb int.
+VBint:					; Blank template VERTB interrupt
+	btst	#5,$DFF01F		; check if it's our vertb int.
 	beq.s	.notvb
-	move.w	#$20,$DFF09C	; poll irq bit
-	move.w	#$20,$DFF09C	; KONEY REFACTOR
+	move.w	#$20,$DFF09C		; poll irq bit
+	move.w	#$20,$DFF09C		; KONEY REFACTOR
 	.notvb:	
 	rte
 
-ClearScreen:			; a1=screen destination address to clear
-	ADD.L	#h/4*bpl,A1
+ClearScreen:				; a1=screen destination address to clear
+	LEA	$910(A1),A1		; OPT of ADD.L #h/4*bpl,A1
 	bsr	WaitBlitter
-	MOVE.L	#$0,BLTAMOD		; Init modulo Sou. A
+	MOVE.W	#$0,BLTDMOD		; Init modulo Sou. A
 	move.l	#$01000000,BLTCON0		; set operation type in BLTCON0/1
 	move.l	A1,BLTDPTH		; destination address
-	move.l	#h/2*64+w/16,BLTSIZE	; blitter operation size
+	;MOVE.W	#$8400,DMACON		; BLIT NASTY ENABLE
+	move.W	#h/2*64+w/16,BLTSIZE	; blitter operation size
+	;BSR	WaitBlitter		; A1200 NEEDS THIS...
+	;MOVE.W	#$400,DMACON		; BLIT NASTY DISABLE
 	rts
 
 __WIPE_PLANE:				; a1=screen destination address to clear
@@ -283,7 +284,7 @@ __WIPE_PLANE:				; a1=screen destination address to clear
 	MOVE.L	A1,BLTDPTH		; Dest
 	MOVE.W	#$8400,DMACON		; BLIT NASTY ENABLE
 	MOVE.W	#h/2*64+w/16,BLTSIZE	; Start Blitter (Blitsize)
-	;BSR	WaitBlitter
+	BSR	WaitBlitter		; A1200 NEEDS THIS...
 	MOVE.W	#$400,DMACON		; BLIT NASTY DISABLE
 	RTS
 
@@ -322,16 +323,16 @@ __BLIT_VECTORS:
 	MOVE.W	D7,CENTER
 	; **** END VALUES ****
 
-	;MOVE.W	#$400,DMACON	; BLIT NASTY DISABLE
+	MOVEQ	#$10,D7		; HOW MANY LINES
+	MOVE.W	#$0,XY_INIT
+	MOVE.L	KONEY_PTR,A2
+	
+	BSR	WaitBlitter
 	MOVE.L	#$FFFFFFFF,BLTAFWM	; BLTAFWM/BLTALWM = $FFFF
 	MOVE.W	#$8000,BLTADAT	; BLTADAT = $8000
 	MOVE.W	#bpl,BLTCMOD	; BLTCMOD = 40
 	MOVE.W	#bpl,BLTDMOD	; BLTDMOD = 40
 	MOVE.W	#$FFFF,BLTBDAT	; BLTBDAT = pattern della linea!
-
-	MOVEQ	#$F,D7
-	MOVE.W	#$0,XY_INIT
-	MOVE.L	KONEY_PTR,A2
 
 	.fetchCoordz:
 	MOVEM.L	D7,-(SP)
@@ -673,12 +674,15 @@ __FILLANDSCROLLTXT:
 	BSR.W	WaitBlitter
 	MOVE.L	#%00101001111100000000000000000010,BLTCON0
 	;MOVE.W	#%0000000000000010,BLTCON1
-	;MOVE.L	#$FFFFFFFF,BLTAFWM
+	MOVE.L	#$FFFFFFFF,BLTAFWM
 	MOVE.L	#$0,BLTAMOD
 	;MOVE.W	#$0,BLTDMOD
 	MOVE.L	A2,BLTAPTH
 	MOVE.L	A4,BLTDPTH
+	MOVE.W	#$8400,DMACON		; BLIT NASTY ENABLE
 	MOVE.W	#6*64+(w*2+16)/16,BLTSIZE
+	;BSR	WaitBlitter		; A1200 NEEDS THIS...
+	MOVE.W	#$400,DMACON		; BLIT NASTY DISABLE
 	RTS
 
 __BLIT_GLITCH_SLICE:
@@ -997,7 +1001,7 @@ __SCROLL_Y_HALF:
 	ADD.L	D1,A3			; POSITION Y
 	.goBlit:
 
-	;MOVE.L	#$FFFFFFFF,BLTAFWM		; THEY'LL NEVER
+	MOVE.L	#$FFFFFFFF,BLTAFWM		; THEY'LL NEVER
 	MOVE.W	BLIT_A_MOD,BLTAMOD		; BLTAMOD
 	MOVE.W	BLIT_D_MOD,BLTDMOD		; BLTDMOD
 
@@ -1775,6 +1779,7 @@ __BLK_SHUFFLE:
 	MOVE.L	PAT_GEAR,PATTERN_ACTUAL
 	MOVE.L	DITHERPLANE,SCROLL_SRC
 	BSR.W	__BLIT_DITHER_TILE
+
 	MOVE.L	BGPLANE1,SCROLL_SRC
 
 	MOVE.B	#-1,X_1_4_DIR
@@ -2526,7 +2531,7 @@ __BLK_5:
 
 __BLK_VECTOR:
 	MOVE.L	BGPLANE3,A1		; SCROLL_DEST
-	BSR.W	__WIPE_PLANE
+	BSR.W	ClearScreen
 	MOVE.L	BGPLANE3,SCROLL_DEST
 	BSR.W	__BLIT_VECTORS
 	RTS
