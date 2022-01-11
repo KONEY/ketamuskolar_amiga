@@ -32,9 +32,9 @@ VarTimesTrig MACRO				; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(An
 	ENDM
 ;********** Demo **********			; Demo-specific non-startup code below.
 Demo:					; a4=VBR, a6=Custom Registers Base addr
-	;MOVE.W	#$5,MED_START_POS		; skip to pos# after first block
+	;MOVE.W	#$F,MED_START_POS		; skip to pos# after first block
 	;*--- init ---*
-	MOVE.L	#VBint,$6C(A4)
+	;MOVE.L	#VBint,$6C(A4)
 	MOVE.W	#%1110000000100000,INTENA
 	MOVE.W	#%1000001111000000,DMACON	; BIT10=BLIT NASTY
 	;MOVE.W	MODSTART_POS,D3
@@ -171,9 +171,8 @@ Demo:					; a4=VBR, a6=Custom Registers Base addr
 	JSR	_startmusic
 ;********************  main loop  ********************
 MainLoop:
-	move.w	#$12c,d0			; No buffering, so wait until raster
-	bsr.w	WaitRaster		; is below the Display Window.
-	;*--- swap buffers ---*
+	;MOVE.W	#$12C,D0			; No buffering, so wait until raster
+	;BSR.W	WaitRaster		; is below the Display Window.	;*--- swap buffers ---*
 	;movem.l	DrawBuffer(PC),a2-a3
 	;exg	a2,a3
 	;movem.l	a2-a3,DrawBuffer		;draw into a2, show a3
@@ -208,11 +207,13 @@ MainLoop:
 	JSR	(A4)			; EXECUTE SUBROUTINE BLOCK#
 	;*--- main loop end ---*
 
-	;MOVE.W	$DFF006,$DFF180		; show rastertime left down to $12c
 	ENDING_CODE:
 	BTST	#6,$BFE001
 	BNE.S	.DontShowRasterTime
-	;MOVE.W	$DFF006,$DFF180		; show rastertime left down to $12c
+	MOVE.W	$DFF006,$DFF180		; show rastertime left down to $12c
+	;MOVEM.L	D0-A6,-(SP)
+	;JSR	_endmusic
+	;MOVEM.L	(SP)+,D0-A6
 	MOVE.B	X_DIR,D5
 	NEG.B	D5
 	MOVE.B	D5,X_DIR
@@ -232,8 +233,9 @@ MainLoop:
 	LEA	Drawline\.DrawMode,A1	; BEWARE THE SMC!! ;)
 	MOVE.W	#$0B05,2(A1)		; #$0BCA for normal line
 	; ## POKE VALUE INTO SUBROUTINE ##
-
 	.DontShowRasterTime:
+
+	BSR.W	WaitRasterCopper		; is below the Display Window.
 
 	BTST	#2,$DFF016		; POTINP - RMB pressed?
 	BNE.W	MainLoop			; then loop
@@ -244,6 +246,14 @@ MainLoop:
 	RTS
 
 ;********** Demo Routines **********
+WaitRasterCopper:
+	;MOVE.W	#$0FF0,$DFF180		; show rastertime left down to $12c
+	BTST	#4,INTENAR
+	BNE.S	WaitRasterCopper
+	MOVE.W	#$8010,INTENA
+	;MOVE.W	#$0000,$DFF180		; show rastertime left down to $12c
+	RTS
+
 PokePtrs:					; Generic, poke ptrs into copper list
 	.bpll:	
 	move.l	a0,d2
@@ -682,7 +692,6 @@ __FILLANDSCROLLTXT:
 	MOVE.L	A4,BLTDPTH
 	MOVE.W	#$8400,DMACON		; BLIT NASTY ENABLE
 	MOVE.W	#6*64+(w*2+16)/16,BLTSIZE
-	;BSR	WaitBlitter		; A1200 NEEDS THIS...
 	MOVE.W	#$400,DMACON		; BLIT NASTY DISABLE
 	RTS
 
@@ -962,6 +971,48 @@ __SCROLL_X_HALF:
 
 __SCROLL_Y_HALF:
 	MOVEQ	#0,D1
+	MOVE.W	Y_HALF_SHIFT,D1
+
+	;MULU.W	#bpl,D1
+	LEA	BPL_PRECALC,A0
+	ADD.W	D1,D1
+	MOVE.W	(A0,D1.W),D1
+
+	; ## MAIN BLIT ####
+	MOVE.L	SCROLL_SRC,A3
+	MOVE.L	SCROLL_DEST,A4
+
+	MOVE.B	Y_HALF_DIR,D5
+	NOT.B	D5
+	MOVE.B	D5,Y_HALF_DIR
+
+	BSR	WaitBlitter
+	MOVE.W	#%000100111110000,BLTCON0
+	TST.B	D5
+	BEQ.S	.goUp
+	MOVE.W	#%0000000000000010,BLTCON1	; BLTCON1 DESC MODE
+	SUB.L	D1,A4			; POSITION Y
+	ADD.L	#bpl*h-1,A3
+	ADD.L	#bpl*h-1,A4
+	BRA.S	.goBlit
+	.goUp:
+	MOVE.W	#%0000000000000000,BLTCON1	; BLTCON1
+	;SUB.B	#bpl,D1
+	ADD.L	D1,A3			; POSITION Y
+	.goBlit:
+
+	MOVE.L	#$FFFFFFFF,BLTAFWM		; THEY'LL NEVER
+	MOVE.W	BLIT_A_MOD,BLTAMOD		; BLTAMOD
+	MOVE.W	BLIT_D_MOD,BLTDMOD		; BLTDMOD
+
+	MOVE.L	A3,BLTAPTH		; BLTAPT SRC
+	MOVE.L	A4,BLTDPTH		; DESC
+	MOVE.W	#h*64+w/16,BLTSIZE		; BLTSIZE
+	; ## MAIN BLIT ####
+	RTS
+
+__SCROLL_Y_HALF_H:
+	MOVEQ	#0,D1
 	MOVE.L	D1,D4			; CLR
 	MOVE.W	Y_HALF_SHIFT,D1
 	MOVE.W	#h,D4
@@ -983,7 +1034,7 @@ __SCROLL_Y_HALF:
 
 	MOVE.B	Y_HALF_DIR,D5
 	NOT.B	D5
-	MOVE.B	D5,Y_HALF_DIR
+	;MOVE.B	D5,Y_HALF_DIR
 
 	bsr	WaitBlitter
 	MOVE.W	#%000100111110000,BLTCON0
@@ -1430,7 +1481,6 @@ __SCROLL_X_Y_1_4:
 	LEA	BPL_PRECALC,A0		; TABLE OPTIMIZING
 	ADD.W	D6,D6
 	MOVE.W	(A0,D6.W),D6
-	CLR.W	$100			; DEBUG | w 0 100 2
 	MOVE.B	Y_1_4_DIR,D3		; -1/1
 	EXT.W	D3
 	ASR.W	#1,D3			; EXTENDS SIGN FROM DIR
@@ -1550,7 +1600,6 @@ __X_SHIFT_LFO:
 	RTS
 
 __Y_SHIFT_LFO:
-	CLR.W	$100			; DEBUG | w 0 100 2
 	MOVEQ	#0,D0			; RESETS...
 	MOVE.L	D0,D1			; RESETS...
 	MOVE.B	Y_SHIFT_LFO,D1
@@ -2199,8 +2248,6 @@ __BLK_BEGIN:
 	MOVE.L	BGPLANE1,SCROLL_SRC
 	MOVE.L	BGPLANE1,SCROLL_DEST
 	BSR.W	__SCROLL_Y_HALF
-
-	MOVE.L	BGPLANE3,SCROLL_DEST
 	RTS
 
 __BLK_BEGIN3_PRE:
@@ -3150,7 +3197,8 @@ TEXT:		INCLUDE "textscroller.i"
 		INCLUDE "med/MED_PlayRoutine.i"
 	;#######################################################
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
-MED_MODULE:	INCBIN "med/KETAMUSkOLAR_2020FIX2.med"	; FIX4=REDUCED FREQ
+;MED_MODULE:	INCBIN "med/octamed_test.med"
+MED_MODULE:	INCBIN "med/KETAMUSkOLAR_2020FIX2.med"
 _chipzero:	DC.L 0
 _MED_MODULE:
 
@@ -3235,10 +3283,13 @@ COPPER:
 	DC.W $2201,$FF00		; ## START ##
 	DC.W $100,%1100001000000000	; MED RES FROM HERE
 
-	DC.W $FFFF,$FFFE		;magic value to end copperlist
+	DC.W $2D01,$FF00		; ## RASTER END ## #$12C?
+	DC.W $9A,$10		; CLEAR RASTER BUSY FLAG
+
+	DC.W $FFFF,$FFFE		; magic value to end copperlist
 	._COPPER:
 
-	SECTION ChipBuffers,BSS_C	;BSS doesn't count toward exe size
+	SECTION ChipBuffers,BSS_C	; BSS doesn't count toward exe size
 
 BPL_PRECALC:	DS.W bpl		; Precalculated offsets
 BLEED0:		DS.B 32*bpl

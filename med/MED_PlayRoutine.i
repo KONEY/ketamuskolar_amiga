@@ -38,11 +38,11 @@
 		XDEF	_startmusic,_endmusic
 
 _startmusic:
-	lea	MED_MODULE,a2
-	bsr.s	_RelocModule
-	bsr.w	_InitPlayer
-	lea	MED_MODULE,a0
-	bra.w	_PlayModule
+		lea	MED_MODULE,a2
+		bsr.s	_RelocModule
+		bsr.w	_InitPlayer
+		lea	MED_MODULE,a0
+		bra.w	_PlayModule
 
 _endmusic:	bra.w	_RemPlayer
 ; ***** The relocation routine *****
@@ -269,7 +269,7 @@ choff_midi:	clr.b	trk_prevmidin(a1)
 		moveq	#3,d0
 		bra.w	_AddMIDIData
 	ENDC
-notcomidi:		cmp.b	#4,d0
+notcomidi:	cmp.b	#4,d0
 		bge.s	notamigatrk
 ; -------- TURN OFF AMIGA-CHANNEL ----------------------------------------
 	IFNE	SYNTH
@@ -482,7 +482,7 @@ nounrecit:	add.b	gid_addtable-1(pc,d0.w),d7
 		bra.s	gid_setrept
 shiftcnt:		dc.b	4,3,2,1,1,0,2,2,1,1,0,0,1,1,0,0,0,0
 		dc.b	3,3,2,2,1,0,5,4,3,2,1,0,6,5,4,3,2,1
-mullencnt:		dc.b	15,7,3,1,1,0,3,3,1,1,0,0,1,1,0,0,0,0
+mullencnt:	dc.b	15,7,3,1,1,0,3,3,1,1,0,0,1,1,0,0,0,0
 		dc.b	7,7,3,3,1,0,31,15,7,3,1,0,63,31,15,7,3,1
 octstart:		dc.b	12,12,12,12,24,24,0,12,12,24,24,36,0,12,12,24,36,36
 		dc.b	0,12,12,24,24,24,12,12,12,12,12,12,12,12,12,12,12,12
@@ -587,7 +587,7 @@ hmn_notvolu0:
 		clr.b	trk_prevmidin(a5)			;suppress note off!
 		bra.s	hmn_smof
 hmn_nosmof:	move.b	d1,trk_prevmidin(a5)
-hmn_smof:	and.b	#$1F,d5					;clear all flag bits etc...
+hmn_smof:		and.b	#$1F,d5				;clear all flag bits etc...
 		subq.b	#1,d5				;from 1-16 to 0-15
 		move.b	d5,trk_prevmidich(a5)		;save to prev midi channel
 
@@ -904,7 +904,7 @@ sinetable:	dc.b	0,25,49,71,90,106,117,125,127,125,117,106,90,71,49
 		dc.b	-106,-90,-71,-49,-25,0
 		EVEN
 
-_IntHandler:	;MOVE.W	$DFF006,$DFF180			; show rastertime left down to $12c
+_IntHandler:
 		movem.l	d2-d7/a2-a6,-(sp)
 	IFNE	CIAB|VBLANK
 		movea.l	a1,a6				;get data base address (int_Data)
@@ -912,6 +912,7 @@ _IntHandler:	;MOVE.W	$DFF006,$DFF180			; show rastertime left down to $12c
 	IFEQ	CIAB|VBLANK
 		lea	DB,a6				;don't expect a1 to contain DB address
 	ENDC
+		;BSR	WaitBlitter
 		tst.b	bpmcounter-DB(a6)
 		bmi.s	plr_nobpm
 		subq.b	#1,bpmcounter-DB(a6)
@@ -1064,10 +1065,10 @@ plr_loop2_end:	addq.w	#1,d7
 nonewnote:	bsr.w	DoFX
 plr_endfx:	bsr	_StartDMA				;turn on DMA
 plr_exit:		movem.l	(sp)+,d2-d7/a2-a6
-		;MOVE.W	#$0000,$DFF180
 	IFNE	VBLANK
 		moveq	#0,d0
 	ENDC
+		;MOVE.W	#$0000,$DFF180
 		rts
 
 ; and advance song pointers
@@ -1212,7 +1213,7 @@ plr_chkhold:	movea.l	(a5)+,a1				;track data
 		and.b	#$3F,d0
 		beq.s	plr_holdend			;don't hold
 		bra.s	plr_hold2
-plr_hold1:		and.b	#$7f,d1				;note??
+plr_hold1:		and.b	#$7f,d1			;note??
 		beq.s	plr_hold2				;no, cont hold..
 		move.b	2(a3),d1
 		subq.b	#3,d1				;is there command 3 (slide)
@@ -2159,8 +2160,8 @@ rpnewv:		rts
 
 ; -------- AUDIO DMA ROUTINE ---------------------------------------------
 _StartDMA:	;This small routine turns on audio DMA
-		move.w	dmaonmsk-DB(a6),d0		;dmaonmsk contains the mask of
-		beq.s	sdma_nodmaon		;the channels that must be turned on
+		move.w	dmaonmsk-DB(a6),d0			;dmaonmsk contains the mask of
+		beq.s	sdma_nodmaon			;the channels that must be turned on
 	IFNE	INSTR_TRACKING
 		LEA	MED_TRK_0_COUNT(PC),A4		; #KONEY# RESET AUDIO LEVELS
 		BTST	#$0,D0
@@ -2423,7 +2424,7 @@ resprevpbends:	move.w	#$2000,(a2)+
 
 ; *************************************************************************
 ; *************************************************************************
-; ***********			P U B L I C   F U N C T I O N S		***********
+; *********** P U B L I C   F U N C T I O N S		    ***********
 ; *************************************************************************
 ; *************************************************************************
 

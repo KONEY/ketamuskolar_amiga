@@ -10,7 +10,7 @@ Start:
 ;*--- save view+coppers ---*
 
 	.yes68k:
-	MOVE.L $78.W,A4		; or $6c(a0) with a0=vbrbase BY KONEY
+	;MOVE.L $78.W,A4		; or $6c(a0) with a0=vbrbase BY KONEY
 	lea .GfxLib(PC),a1		;either way return to here and open
 	jsr -408(a6)		;graphics library
 	tst.l d0			;if not OK,
@@ -74,30 +74,29 @@ Start:
 
 WaitEOF:				;wait for end of frame
 	RTS
-	bsr.s WaitBlitter
-	move.w #$138,d0
+	bsr.s	WaitBlitter
+	move.w	#$138,d0
 WaitRaster:			;Wait for scanline d0. Trashes d1.
-	;CLR.W	$100		; DEBUG | w 0 100 2
 	.l:
-	move.l VPOSR,d1
-	lsr.l #1,d1
-	lsr.w #7,d1
-	cmp.w d0,d1
-	bne.s .l			;wait until it matches (eq)
+	move.l	VPOSR,d1
+	lsr.l	#1,d1
+	lsr.w	#7,d1
+	cmp.w	d0,d1
+	bne.s	.l		;wait until it matches (eq)
 	rts
 
 AllOff:	
-	move.w #$7fff,d2		;clear all bits
-	move.w d2,$96(a6)		;in DMACON,
-	;move.w d2,$9a(a6)	;INTENA,	; DONT RESET FOR MED PLAYER
+	move.w	#$7fff,d2		;clear all bits
+	move.w	d2,$96(a6)		;in DMACON,
+	;move.w	d2,$9a(a6)	;INTENA,	; DONT RESET FOR MED PLAYER
 IntReqD2:
-	move.w d2,$9c(a6)		;and INTREQ
-	move.w d2,$9c(a6)		;twice for A4000 compatibility
+	move.w	d2,$9c(a6)		;and INTREQ
+	move.w	d2,$9c(a6)		;twice for A4000 compatibility
 	rts
 
 WaitBlitter:			;wait until blitter is finished
-	tst.w BLTDDAT		;for compatibility with A1000
+	tst.w	BLTDDAT		;for compatibility with A1000
 	.loop:	
-	btst #6,DMACONR
-	bne.s .loop
+	btst	#6,DMACONR
+	bne.s	.loop
 	rts
