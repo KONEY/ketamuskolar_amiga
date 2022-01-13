@@ -2140,11 +2140,11 @@ __BLK_BEGIN:
 	BNE.S	.noChangeDir
 	CLR.W	$100			; DEBUG | w 0 100 2
 	MOVE.B	MED_TRK_3_NOTE,D1
-	CMP.B	#$0C,D1			; $19 $0C
+	CMP.B	#$1B,D1			; $1B $0F $19 $0C
 	BEQ.S	.okChangeDir
-	CMP.B	#$19,D1			; $19 $0C $1B
+	CMP.B	#$19,D1
 	BEQ.S	.okChangeDir
-	CMP.B	#$1B,D1			; $19 $0C $1B
+	CMP.B	#$0C,D1
 	BNE.S	.noChangeDir
 	.okChangeDir:
 	MOVE.B	X_PROGR_TYPE,D5
