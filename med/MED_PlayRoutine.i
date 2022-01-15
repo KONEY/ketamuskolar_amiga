@@ -3229,7 +3229,7 @@ MED_TRK_1_COUNT:	DC.W $4000
 MED_TRK_2_COUNT:	DC.W $4000
 MED_TRK_3_COUNT:	DC.W $4000
 	ENDC
-MED_STEPSEQ_POS:	DC.W -1		; Pos of the step sequencer 0-15 | FIX for start=1
+MED_STEPSEQ_POS:	DC.W 0		; Pos of the step sequencer 0-15 | FIX for start=1
 MED_START_POS:	DC.W 0		; starts at...
 
 ; Fields in struct InstrExt (easier to access this way rather than
