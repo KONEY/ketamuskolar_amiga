@@ -1230,7 +1230,7 @@ plr_holdend:	addq.l	#4,a3				;next note
 DoPreFXLoop:
 ; -------- PRE-FX COMMAND HANDLING LOOP ----------------------------------
 		moveq	#0,d5				;command page count
-plr_loop1:		move.w	mmd_pblock(a2),d0
+plr_loop1:	move.w	mmd_pblock(a2),d0
 		bsr.w	GetBlockAddr
 		move.w	d5,d1
 		move.w	mmd_pline(a2),d2
@@ -1251,6 +1251,12 @@ plr_loop1_1:	movea.l	(a1)+,a5
 		bra.s	doprefx_mmd0maskd
 doprefx_mmd12mask:
 	ENDC
+		BTST	#6,$BFE001		;IF LMB		| KONEY
+		BNE.S	doprefx_mmd0maskd
+		MOVE.W	#$0F,D0			;MOCK A F00 CMD	| KONEY
+		MOVE.B	#0,D4			;TO SKIP TO NEXT	| KONEY
+		BRA.S	DoPreFX			;BLOCK IN SEQ	| KONEY
+
 		and.w	#$1F,d0
 doprefx_mmd0maskd:
 		bsr.s	DoPreFX
@@ -1361,7 +1367,8 @@ isfxff:		cmp.b	#$ff,d4				;note off??
 		move.l	(sp)+,a1
 f_ff_rts:		rtplay
 ; ---------------- F00, called Pattern Break in ST
-fx0fchgblck:	move.b	#1,nextblock-DB(a6)			;next block????...YES!!!! (F00)
+fx0fchgblck:	MOVE.W	#$0F0F,$DFF180	; show rastertime left down to $12c
+		move.b	#1,nextblock-DB(a6)			;next block????...YES!!!! (F00)
 		bra.s	f_ff_rts
 ; ---------------- was not Fxx, then it's something else!!
 f_0e:
