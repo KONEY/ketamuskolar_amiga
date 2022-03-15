@@ -34,7 +34,7 @@ VarTimesTrig MACRO				; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(An
 	asr.l #TrigShift,\3
 	ENDM
 ;********** Demo **********			; Demo-specific non-startup code below.
-Demo:	MOVE.W	#$21,MED_START_POS		; skip to pos# after first block
+Demo:	;MOVE.W	#$21,MED_START_POS		; skip to pos# after first block
 Code:					; a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
 	;MOVE.L	#VBint,$6C(A4)
@@ -76,8 +76,9 @@ Code:					; a4=VBR, a6=Custom Registers Base addr
 	MOVEM.L	BGPLANE1,A0
 	MOVEQ	#0,D1
 	BSR.W	PokePtrs
-	MOVEM.L	BGPLANE0,A0
-	ADD.L	#bpl,A0
+	;MOVEM.L	BGPLANE0,A0
+	MOVE.L	#GRADIENTPLANE,A0
+	;ADD.L	#bpl,A0
 	MOVEQ	#0,D1
 	BSR.W	PokePtrs
 	MOVEM.L	BGPLANE3,A0
@@ -102,10 +103,12 @@ Code:					; a4=VBR, a6=Custom Registers Base addr
 	MOVE.L	#COPPER,COP1LC
 
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
-	;JSR	__CREATESCROLLSPACE
-
 	MOVE.W	BLIT_Y_MASK,BLTAFWM		; THEY'LL NEVER
 	MOVE.W	BLIT_X_MASK,BLTALWM		; CHANGE
+
+	MOVE.L	#BG_DITHER,SCROLL_SRC	; FILLS A PLANE
+	MOVE.L	#GRADIENTPLANE,SCROLL_DEST	; FILLS A PLANE
+	BSR.W	__GRADIENT_PLANE		; WITH DITHERING
 
 	MOVE.L	#DITHERPLANE,SCROLL_DEST	; FILLS A PLANE
 	MOVE.W	#0,D0
@@ -618,6 +621,39 @@ __DITHER_PLANE:
 	BEQ.S	.noWait
 	BSR.W	WaitEOF			; TO SLOW DOWN :)
 	.noWait:
+	DBRA	D4,.outerloop
+	RTS
+
+__GRADIENT_PLANE:
+	MOVE.L	SCROLL_SRC,A3
+	MOVE.L	SCROLL_DEST,A4
+	MOVE.L	A4,A5
+	ADD.L	#bpl*(h-1),A5
+	MOVE.L	A4,A6
+	ADD.L	#bpl*(h-2),A6
+	MOVE.L	A4,A2
+	ADD.L	#bpl,A2
+	MOVE.W	#(h/2)-1,D4	; QUANTE LINEE
+	.outerloop:		; NUOVA RIGA
+	MOVE.W	#(bpl/2)-1,D6	; RESET D6
+	.innerloop:		; LOOP KE CICLA LA BITMAP
+	MOVE.B	(A3)+,D5
+	;NOT.L	D5		; MAKE BITMAP NEGATIVE
+	MOVE.B	D5,(A4)+
+	MOVE.B	D5,(A6)+
+	MOVE.B	D5,D0
+	REPT 8			; FLIP BITS
+	ROXR.B	#1,D0		
+	ROXL.B	#1,D2
+	ENDR			; FLIP BITS
+	MOVE.B	D2,-(A5)
+	MOVE.B	D2,-(A2)
+	DBRA	D6,.innerloop
+	;ADD.L	#(bpl/2),A3
+	ADD.L	#(bpl/2),A4
+	SUB.L	#(bpl/2),A5
+	SUB.L	#(bpl/2)+bpl,A6
+	ADD.L	#(bpl/2)+bpl,A2
 	DBRA	D4,.outerloop
 	RTS
 
@@ -2979,12 +3015,11 @@ __BLK_NEW_VECT:
 
 __BLK_VECTOR_SPREAD:
 	;### NEW BPL POINTERS ####
-	MOVE.L	#BG_DITHER,A0
+	MOVE.L	#GRADIENTPLANE,A0
 	;ADD.L	#bpl,A0
 	LEA	COPPER\.BplPtrs2+2,A1
 	MOVEQ	#0,D1
 	BSR.W	PokePtrs
-	;MOVE.L	#DITHERPLANE,A0
 	MOVEM.L	BGPLANE0,A0
 	SUB.L	#bpl,A0
 	MOVEQ	#0,D1
@@ -3710,7 +3745,7 @@ _MED_MODULE:
 
 PAT_CHAOS:	INCBIN "pattern_chaos.raw"
 
-BG_DITHER:	INCBIN "bg_dither.raw"
+BG_DITHER:	INCBIN "bg_dither3.raw"
 
 COPPER:
 	DC.W $1FC,0	; Slow fetch mode, remove if AGA demo.
@@ -3810,7 +3845,7 @@ BLEED2:		DS.B 32*bpl
 PLANE3:		DS.B h*bpl	; FOR 3D
 BLEED3:		DS.B 32*bpl
 DITHERPLANE:	DS.B h*bpl	; 1 plane
-;EMPTY_PLANE:	DS.B h/2*bpl	; for clearings
+GRADIENTPLANE:	DS.B h*bpl	; for CRT fx
 HEADER:		DS.B 12*bpl
 FOOTER:		DS.B 11*bpl*2	; HI-RES
 FOOTER_END:	DS.B 0		; ??
