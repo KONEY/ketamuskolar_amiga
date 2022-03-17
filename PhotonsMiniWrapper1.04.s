@@ -1,5 +1,4 @@
 ;*** MiniWrapper by Photon ***
-
 Start:	
 	move.l 4.w,a6		;Exec library base address in a6
 	sub.l a4,a4
@@ -10,7 +9,10 @@ Start:
 ;*--- save view+coppers ---*
 
 	.yes68k:
-	;MOVE.L $78.W,A4		; or $6c(a0) with a0=vbrbase BY KONEY
+	CMP.W	#$27,$14(A6)	; $27 = 39 = KS 3.0 | EXEC VERS
+	BGE.S	.belowKS30	; DONT MESS WITH OS IRQs - NO FLICKER ON A3000
+	MOVE.L $78.W,A4		; or $6c(a0) with a0=vbrbase BY KONEY
+	.belowKS30:
 	lea .GfxLib(PC),a1		;either way return to here and open
 	jsr -408(a6)		;graphics library
 	tst.l d0			;if not OK,
@@ -26,8 +28,9 @@ Start:
 
 	lea $dff000,a6
 	bsr.w WaitEOF		;wait out the current frame
+
 	move.l $1c(a6),-(sp)	;save intena+intreq
-	move.w 2(a6),-(sp)	;and dma
+	move.w 2(a6),-(sp)		;and dma
 	move.l $6c(a4),-(sp)	;and also the VB int vector for sport.
 	bsr.w AllOff		;turn off all interrupts+DMA
 

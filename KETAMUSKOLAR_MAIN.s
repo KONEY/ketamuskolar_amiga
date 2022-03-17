@@ -35,22 +35,12 @@ VarTimesTrig MACRO				; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(An
 	ENDM
 ;********** Demo **********			; Demo-specific non-startup code below.
 Demo:	;MOVE.W	#$21,MED_START_POS		; skip to pos# after first block
-Code:					; a4=VBR, a6=Custom Registers Base addr
+	Code:		; a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
-	;MOVE.L	#VBint,$6C(A4)
+	MOVE.L	#VBint,$6C(A4)
 	MOVE.W	#%1110000000100000,INTENA
 	MOVE.W	#%1000001111000000,DMACON	; BIT10=BLIT NASTY
-	;MOVE.W	MODSTART_POS,D3
-	;CMP.W	#0,D3
-	;BEQ.S	.dontDisableBlitterNasty	; IF START > 0 DISABLE BLIT NASTY NOW
-	;MOVE.W	#%0000010000000000,DMACON	; BIT10=BLIT NASTY DISABLED
-	;.dontDisableBlitterNasty:
 	;*--- clear screens ---*
-	;LEA	SCREEN1,A1
-	;BSR.W	__WIPE_PLANE
-	;LEA	SCREEN2,A1
-	;LEA	EMPTY_PLANE,A1
-	;BSR.W	__WIPE_PLANE
 	BSR	WaitBlitter
 
 	MOVEQ	#0,D0
@@ -103,21 +93,14 @@ Code:					; a4=VBR, a6=Custom Registers Base addr
 	MOVE.L	#COPPER,COP1LC
 
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
+	MOVE.L	#$00000000,BLTCON0
 	MOVE.W	BLIT_Y_MASK,BLTAFWM		; THEY'LL NEVER
 	MOVE.W	BLIT_X_MASK,BLTALWM		; CHANGE
 
-	MOVE.L	#BG_DITHER,SCROLL_SRC	; FILLS A PLANE
-	MOVE.L	#GRADIENTPLANE,SCROLL_DEST	; FILLS A PLANE
-	BSR.W	__GRADIENT_PLANE		; WITH DITHERING
-
-	MOVE.L	#DITHERPLANE,SCROLL_DEST	; FILLS A PLANE
-	MOVE.W	#0,D0
-	BSR.W	__DITHER_PLANE		; WITH DITHERING
-
-	BSR.W	WaitEOF			; TO SLOW DOWN :)
-
 	MOVE.L	#HEADER,SCROLL_DEST
 	BSR.W	__DBLBMP
+
+	BSR.W	WaitEOF			; TO SLOW DOWN :)
 
 	;## SUPER FAST LINES DRAWING ##
 	LEA	FOOTER,A0
@@ -130,6 +113,14 @@ Code:					; a4=VBR, a6=Custom Registers Base addr
 	MOVEM.L	(SP)+,D0-D1
 	DBRA	D0,.drawLine
 	;## SUPER FAST LINES DRAWING ##
+
+	MOVE.L	#BG_DITHER,SCROLL_SRC	; FILLS A PLANE
+	MOVE.L	#GRADIENTPLANE,SCROLL_DEST	; FILLS A PLANE
+	BSR.W	__GRADIENT_PLANE		; WITH DITHERING
+
+	MOVE.L	#DITHERPLANE,SCROLL_DEST	; FILLS A PLANE
+	MOVE.W	#0,D0
+	BSR.W	__DITHER_PLANE		; WITH DITHERING
 
 	;BRA.W	.skip
 	;MOVE.W	#0,X_SHIFT
@@ -231,7 +222,8 @@ MainLoop:
 	;*--- main loop end ---*
 
 	ENDING_CODE:
-	BTST	#6,$BFE001
+	BRA.S	.DontShowRasterTime
+	;BTST	#6,$BFE001
 	BNE.S	.DontShowRasterTime
 	;MOVE.W	$DFF006,$DFF180		; show rastertime left down to $12c
 	MOVE.B	X_DIR,D5
@@ -290,12 +282,16 @@ PokePtrs:					; Generic, poke ptrs into copper list
 	dbf	d1,.bpll
 	rts
 
-VBint:					; Blank template VERTB interrupt
-	btst	#5,$DFF01F		; check if it's our vertb int.
-	beq.s	.notvb
-	move.w	#$20,$DFF09C		; poll irq bit
-	move.w	#$20,$DFF09C		; KONEY REFACTOR
+VBint:				;Blank template VERTB interrupt
+	movem.l d0/a6,-(sp)		;Save used registers
+	lea $dff000,a6
+	btst #5,$1f(a6)		;check if it's our vertb int.
+	beq.s .notvb
+	moveq #$20,d0		;poll irq bit
+	move.w d0,$9c(a6)
+	move.w d0,$9c(a6)
 	.notvb:	
+	movem.l (sp)+,d0/a6		;restore
 	rte
 
 __WIPE_PLANE:				; a1=screen destination address to clear
@@ -654,6 +650,7 @@ __GRADIENT_PLANE:
 	SUB.L	#(bpl/2),A5
 	SUB.L	#(bpl/2)+bpl,A6
 	ADD.L	#(bpl/2)+bpl,A2
+	BSR.W	WaitEOF			; TO SLOW DOWN :)
 	DBRA	D4,.outerloop
 	RTS
 
@@ -1229,6 +1226,9 @@ __SCROLL_Y_PROGR:
 	MOVE.L	SCROLL_SRC,A1
 	MOVE.L	SCROLL_DEST,A2
 
+	bsr	WaitBlitter
+	MOVE.W	#%0000100111110000,BLTCON0
+
 	CMP.B	#1,D6
 	BNE.S	.blitloop
 	MOVE.B	#1,D3			; OF POLARITY + THEN START FROM 1
@@ -1252,7 +1252,6 @@ __SCROLL_Y_PROGR:
 	MOVE.L	A2,A4
 
 	bsr	WaitBlitter
-	MOVE.W	#%0000100111110000,BLTCON0
 
 	CMP.B	#1,D5
 	BEQ.S	.goUp
@@ -1268,7 +1267,7 @@ __SCROLL_Y_PROGR:
 
 	MOVE.W	#bpl-vbarwbpl*2,BLTAMOD	; BLTAMOD
 	MOVE.W	#bpl-vbarwbpl*2,BLTDMOD	; BLTDMOD
-
+	MOVE.L	#$FFFFFFFF,BLTAFWM		; THEY'LL NEVER
 	MOVE.L	A3,BLTAPTH		; BLTAPT SRC
 	MOVE.L	A4,BLTDPTH		; DESC
 
@@ -1287,7 +1286,6 @@ __SCROLL_Y_PROGR:
 	ADD.B	D6,D3			; CAN BE 1 OR -1
 	;NEG.B	D6
 	DBRA	D2,.blitLoop
-
 	RTS
 
 __SCROLL_X_PROGR_SPLIT:
@@ -2263,7 +2261,6 @@ __BLK_SCREEN2:
 __BLK_BEGIN_PRE:
 	;MOVE.B	#0,X_SHIFT_LFO_MIN		; WIDE WOBBLES
 	;MOVE.B	#14,X_SHIFT_LFO_MAX		; WIDE WOBBLES
-
 	MOVE.W	MED_BLOCK_LINE,D1
 	CMP.W	#48,D1
 	BGE.S	__BLK_BEGIN
@@ -2306,6 +2303,8 @@ __BLK_BEGIN:
 	MOVE.B	#0,X_SHIFT_LFO_MIN		; WIDE WOBBLES
 	MOVE.B	#14,X_SHIFT_LFO_MAX		; WIDE WOBBLES
 	;BSR.W	__X_SHIFT_LFO
+
+	;MOVE.B	#1,FRAME_STROBE
 
 	TST.B	FRAME_STROBE
 	BNE.W	.oddFrame
@@ -3328,96 +3327,6 @@ __BLK_END:
 
 	RTS
 
-__COPCOL_EDIT:
-	LEA	COPPER\.Palette,A0
-	ADD.L	COPCOL_REGISTER,A0
-	MOVE.W	COPCOL_ADDER,D2	; COLOR ADDER
-	; TODO - CHECK IF COLORE REGISTER
-	; **** JOYSTICK TEST ****
-	MOVEM.W	$DFF00C,D0	; FROM EAB
-	ANDI.W	#$0303,D0
-	MOVE.W	D0,D1
-	ADD.W	D1,D1
-	ADDI.W	#$0101,D0
-	ADD.W	D1,D0
-	BTST	#$07,$BFE001	; FIRE
-	BNE.W	.notFire
-
-	BTST	#9,D0		; 9 LEFT
-	BEQ.S	.notLeft
-	TST.W	JOYDIR_STATUS
-	BNE.W	.SkipJoyActions
-	MOVE.W	#1,JOYDIR_STATUS
-	ROL.W	#4,D2
-	CMPI.W	#$1000,D2
-	BNE.S	.notLeft
-	MOVE.W	#$0001,D2
-	.notLeft:
-	BTST	#1,D0		; 1 RIGHT
-	BEQ.S	.notRight
-	TST.W	JOYDIR_STATUS
-	BNE.W	.SkipJoyActions
-	MOVE.W	#1,JOYDIR_STATUS
-	ROR.W	#4,D2
-	CMPI.W	#$1000,D2
-	BNE.S	.notRight
-	MOVE.W	#$0100,D2
-	.notRight:
-	BTST	#2,D0		; 10 UP
-	BEQ.S	.notDown
-	TST.W	JOYDIR_STATUS
-	BNE.W	.SkipJoyActions
-	MOVE.W	#1,JOYDIR_STATUS
-	SUB.W	D2,2(A0)
-	.notDown:
-	BTST	#10,D0		; 2 DOWN
-	BEQ.S	.notUp
-	TST.W	JOYDIR_STATUS
-	BNE.W	.SkipJoyActions
-	MOVE.W	#1,JOYDIR_STATUS
-	ADD.W	D2,2(A0)
-	.notUp:
-
-	MOVE.W	D2,COPCOL_ADDER	; COLOR ADDER
-	BRA.S	.SkipJoyActions
-
-	.notFire:
-	BTST	#9,D0		; 9 LEFT
-	BEQ.S	.notLeft1
-	TST.W	JOYDIR_STATUS
-	BNE.W	.SkipJoyActions
-	MOVE.W	#1,JOYDIR_STATUS
-	TST.L	COPCOL_REGISTER
-	BEQ.S	.notLeft1		; NO DECREASE IF 0...
-	SUB.L	#4,COPCOL_REGISTER
-	MOVE.W	#$0100,D2		; COLOR ADDER
-	.notLeft1:
-	BTST	#1,D0		; 1 RIGHT
-	BEQ.S	.notRight1
-	TST.W	JOYDIR_STATUS
-	BNE.W	.SkipJoyActions
-	MOVE.W	#1,JOYDIR_STATUS
-	MOVE.W	#2,D3		; HOW MANY COLORS
-	LSL.W	#bpls-1,D3
-	MULU.W	#4,D3
-	SUB.W	#4,D3
-	MOVE.L	COPCOL_REGISTER,D4
-	CMP.L	COPCOL_REGISTER,D3
-	BEQ.S	.notRight1	; NO INCREASE IF LAST
-	ADD.L	#4,COPCOL_REGISTER
-	MOVE.W	#$0100,D2		; COLOR ADDER
-	.notRight1:
-
-	MOVE.W	D2,COPCOL_ADDER	; COLOR ADDER
-
-	.SkipJoyActions:
-	CMPI.W	#$00000101,D0
-	BNE.S	.DontResetStatus
-	MOVE.W	#0,JOYDIR_STATUS
-	.DontResetStatus:
-	; **** JOYSTICK TEST ****
-	RTS
-
 ;********** Fastmem Data **********
 TIMELINE:		;DC.L __BLK_NEW_VECT,__BLK_NEW_VECT,__BLK_NEW_VECT,__BLK_NEW_VECT,__BLK_NEW_VECT
 		;DC.L __BLK_KICK,__BLK_KICK,__BLK_KICK,__BLK_KICK
@@ -3739,12 +3648,11 @@ TEXT:		INCLUDE "textscroller.i"
 	;#######################################################
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
 ;MED_MODULE:	INCBIN "med/octamed_test.med"
-MED_MODULE:	INCBIN "med/KETAMUSkOLAR_2020FIX2.med"
+MED_MODULE:	INCBIN "med/KETAMUSkOLAR_2020FIX5.med"
 _chipzero:	DC.L 0
 _MED_MODULE:
 
 PAT_CHAOS:	INCBIN "pattern_chaos.raw"
-
 BG_DITHER:	INCBIN "bg_dither3.raw"
 
 COPPER:
