@@ -26,7 +26,6 @@ GREEN_REG		EQU $018A
 CYAN_VAL		EQU $00FF
 RED_VAL		EQU $0F00
 ;*************
-;CLR.W	$100				; DEBUG | w 0 100 2
 VarTimesTrig MACRO				; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(Angle)^(TrigShift*2)
 	move.l \1,\3
 	muls \2,\3
@@ -34,7 +33,7 @@ VarTimesTrig MACRO				; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(An
 	asr.l #TrigShift,\3
 	ENDM
 ;********** Demo **********			; Demo-specific non-startup code below.
-Demo:	;MOVE.W	#$F,MED_START_POS		; skip to pos# after first block
+Demo:	MOVE.W	#$E,MED_START_POS		; skip to pos# after first block
 	Code:				; a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
@@ -265,9 +264,11 @@ MainLoop:
 
 ;********** Demo Routines **********
 WaitRasterCopper:
+	;MOVE.W	#$FFA,$DFF180		; show rastertime left down to $12c
 	MOVE.W	INTENAR,D0
 	BTST	#4,D0
 	BNE.S	WaitRasterCopper
+	;MOVE.W	#$0F00,$DFF180		; show rastertime left down to $12c
 	MOVE.W	#$8010,INTENA
 	RTS
 
@@ -719,7 +720,6 @@ __SET_MED_VALUES:
 	MOVE.W	D0,MED_STEPSEQ_POS
 
 	LEA	MED_TRK_0_COUNT(PC),A0
-	;LEA	Copper\.LEVELWAITS+6,A1
 	LEA	AUDIOCHLEV_0(PC),A2
 	LEA	MED_TRK_0_INST(PC),A3
 	MOVEQ	#3,D7
@@ -739,9 +739,9 @@ __SET_MED_VALUES:
 	DBF	D7,.loop
 
 	ADD.L	#$10001,MED_TRK_0_COUNT	; inc elapsed #calls since last
-	;ADDQ.W	#$1,MED_TRK_1_COUNT
+	;;ADDQ.W	#$1,MED_TRK_1_COUNT
 	ADD.L	#$10001,MED_TRK_2_COUNT	; use LONG to save 8 cycles
-	;ADDQ.W	#$1,MED_TRK_3_COUNT
+	;;ADDQ.W	#$1,MED_TRK_3_COUNT
 	RTS
 
 __FILLANDSCROLLTXT:
@@ -2578,7 +2578,7 @@ __BLK_BEGIN4_PRE:
 	BRA.S	.noChangeDir2
 
 	.ok1:
-	MOVE.W	AUDIOCHLEV_0,D1
+	MOVE.W	AUDIOCHLEV_2,D1
 	CMP.W	#$F,D1
 	BNE.S	.noChangeDir2
 
@@ -2623,7 +2623,7 @@ __STROBE_SHUFFLE:
 	BRA.S	.evenFrame
 	.oddFrame:
 	MOVE.B	#0,FRAME_STROBE
-	MOVE.B	Y_HALF_DIR,X_HALF_DIR
+	;MOVE.B	Y_HALF_DIR,X_HALF_DIR
 
 	MOVE.B	#-1,Y_HALF_DIR
 	MOVE.L	BGPLANE0,SCROLL_SRC
@@ -2635,7 +2635,7 @@ __STROBE_SHUFFLE:
 	MOVE.L	BGPLANE1,SCROLL_DEST
 	BSR.W	__SCROLL_Y_HALF
 
-	MOVE.B	X_HALF_DIR,Y_HALF_DIR
+	;MOVE.B	X_HALF_DIR,Y_HALF_DIR
 	.evenFrame:
 	RTS
 
@@ -3761,7 +3761,7 @@ COPPER:
 	DC.W $2201,$FF00		; ## START ##
 	DC.W $100,%1100001000000000	; MED RES FROM HERE
 
-	DC.W $2D01,$FF00		; ## RASTER END ## #$12C?
+	DC.W $3501,$FF00		; ## RASTER END ## #$12C?
 	DC.W $009A,$0010		; CLEAR RASTER BUSY FLAG
 
 	DC.W $FFFF,$FFFE		; magic value to end copperlist

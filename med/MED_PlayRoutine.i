@@ -962,7 +962,7 @@ plr_noblkdelay:	move.w	mmd_pblock(a2),d0
 ; -------- TRACK LOOP (FOR EACH TRACK) -----------------------------------
 	IFNE	INSTR_TRACKING				; ## KONEY MOD ##
 		MOVEM.L	A2,-(SP)
-		LEA	MED_TRK_0_INST(PC),A2			; KONEY
+		LEA	MED_TRK_0_INST(PC),A2		; KONEY
 	ENDC						; ## KONEY MOD ##
 plr_loop0:	movea.l	(a1)+,a5				;get address of this track's struct
 ; ---------------- get the note numbers
@@ -2647,7 +2647,7 @@ _ContModule:	tst.b	_timeropen
 ; PlayModule(a0 = module)  -- initialize & play it!
 ; *************************************************************************
 _PlayModule:	st	d0
-contpoint:		movem.l	a0/d0,-(sp)
+contpoint:	movem.l	a0/d0,-(sp)
 		bsr	_InitModule
 		movem.l	(sp)+,a0/d0
 		move.l	a6,-(sp)
@@ -2684,7 +2684,7 @@ PM_nomodT:	movea.l	mmd_songinfo(a0),a1			;song
 		bset	#1,$bfe001
 		bra.s	PM_filset
 PM_filon:		bclr	#1,$bfe001
-PM_filset:		tst.b	d0
+PM_filset:	tst.b	d0
 		beq.s	PM_noclr
 		clr.l	mmd_pline(a0)
 		clr.l	rptline-DB(a6)
