@@ -1059,8 +1059,8 @@ plr_loop2_end:	addq.w	#1,d7
 		cmp.w	numtracks-DB(a6),d7
 		blt.s	plr_loop2
 ; -------- THE REST... ---------------------------------------------------
-		MOVE.W	mmd_pseqnum(a2),MED_SONG_POS	;SONG POSITION | KONEY
-		MOVE.W	mmd_pline(a2),MED_BLOCK_LINE	;LINE POSITION | KONEY
+		MOVE.W	mmd_pseqnum(a2),MED_SONG_POS		;SONG POSITION | KONEY
+		MOVE.W	mmd_pline(a2),MED_BLOCK_LINE		;LINE POSITION | KONEY
 		bsr.s	AdvSngPtr
 nonewnote:	bsr.w	DoFX
 plr_endfx:	bsr	_StartDMA				;turn on DMA
@@ -1068,7 +1068,6 @@ plr_exit:		movem.l	(sp)+,d2-d7/a2-a6
 	IFNE	VBLANK
 		moveq	#0,d0
 	ENDC
-		;MOVE.W	#$0000,$DFF180
 		rts
 
 ; and advance song pointers
@@ -1089,7 +1088,7 @@ plr_linenumset:	cmp.w	numlines-DB(a6),d1 			;advance block?
 plr_chgblock:	tst.b	nxtnoclrln-DB(a6)
 		bne.s	plr_noclrln
 		moveq	#0,d1				;clear line number
-		;MOVE.W	#0,MED_STEPSEQ_POS			;RESET STEPSEQ | KONEY
+		MOVE.B	#0,FRAME_STROBE			;RESET FRAME STROBE | KONEY
 plr_noclrln:	tst.w	mmd_pstate(a2)			;play block or play song
 		bpl.w	plr_nonewseq			;play block only...
 		cmp.b	#'2',3(a2)			;MMD2?
@@ -1213,7 +1212,7 @@ plr_chkhold:	movea.l	(a5)+,a1				;track data
 		and.b	#$3F,d0
 		beq.s	plr_holdend			;don't hold
 		bra.s	plr_hold2
-plr_hold1:		and.b	#$7f,d1			;note??
+plr_hold1:	and.b	#$7f,d1				;note??
 		beq.s	plr_hold2				;no, cont hold..
 		move.b	2(a3),d1
 		subq.b	#3,d1				;is there command 3 (slide)
@@ -1367,7 +1366,7 @@ isfxff:		cmp.b	#$ff,d4				;note off??
 		move.l	(sp)+,a1
 f_ff_rts:		rtplay
 ; ---------------- F00, called Pattern Break in ST
-fx0fchgblck:	MOVE.W	#$0F0F,$DFF180	; show rastertime left down to $12c
+fx0fchgblck:	MOVE.W	#$0FF0,$DFF180	; show rastertime left down to $12c
 		move.b	#1,nextblock-DB(a6)			;next block????...YES!!!! (F00)
 		bra.s	f_ff_rts
 ; ---------------- was not Fxx, then it's something else!!
