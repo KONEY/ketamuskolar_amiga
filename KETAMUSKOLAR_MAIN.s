@@ -237,7 +237,7 @@ MainLoop:
 	MOVEM.L	(SP)+,D0-A6
 	RTS
 
-;********** Demo Routines **********
+;********** CORE Routines **********
 WaitRasterCopper:
 	;MOVE.W	#$FFA,$DFF180		; show rastertime left down to $12c
 	;MOVE.W	INTENAR,D0
@@ -1672,6 +1672,7 @@ __LFO_EASYING:
 	MOVE.W	D0,(A1)
 	RTS
 
+;********** BLOCKS Routines **********
 __BLK_DIAG_FLUID1_PRE:
 	;## COLORS SHIFTS ##
 	MOVE.W	AUDIOCHLEV_2,D0
