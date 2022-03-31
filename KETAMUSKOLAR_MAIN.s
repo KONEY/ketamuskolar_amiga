@@ -33,7 +33,7 @@ VarTimesTrig MACRO				; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(An
 	asr.l #TrigShift,\3
 	ENDM
 ;********** Demo **********			; Demo-specific non-startup code below.
-Demo:	;MOVE.W	#32,MED_START_POS		; skip to pos# after first block
+Demo:	MOVE.W	#41,MED_START_POS		; skip to pos# after first block
 	Code:				; a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
@@ -824,7 +824,7 @@ __BLIT_GLITCH_BAND:
 	MOVE.L	SCROLL_DEST,A4
 
 	.waitData:
-	ADD.L	#bpl*2,A3			; GO TO NEXT
+	ADD.L	#bpl,A3			; GO TO NEXT
 	TST.L	(A3)			; IF LINE EMPTY
 	BEQ.S	.waitData			
 	.dataOk:
@@ -2272,19 +2272,19 @@ __BLK_SCREEN2:
 	RTS
 
 __BLK_GRADIENT_MIX:
-	;### NEW BPL POINTERS ####
-	LEA	COPPER\.BplPtrs2,A1
-	MOVE.L	#GRADIENTPLANENEG,A0
-	BSR.W	PokePtrs
-	MOVEM.L	BGPLANE1,A0
-	BSR.W	PokePtrs
-	MOVEM.L	BGPLANE0,A0
-	;ADD.L	#bpl,A0
-	LEA	40(A0),A0		; OPT
-	BSR.W	PokePtrs
-	;### NEW BPL POINTERS ####
-	MOVE.W	#$6000|(.runOnce-(__BLK_GRADIENT_MIX+2)),__BLK_GRADIENT_MIX	; mock a BRA.S
-	.runOnce:			; BEWARE THE SMC !!
+	;;### NEW BPL POINTERS ####
+	;LEA	COPPER\.BplPtrs2,A1
+	;MOVE.L	#GRADIENTPLANENEG,A0
+	;BSR.W	PokePtrs
+	;MOVEM.L	BGPLANE1,A0
+	;BSR.W	PokePtrs
+	;MOVEM.L	BGPLANE0,A0
+	;;ADD.L	#bpl,A0
+	;LEA	40(A0),A0		; OPT
+	;BSR.W	PokePtrs
+	;;### NEW BPL POINTERS ####
+	;MOVE.W	#$6000|(.runOnce-(__BLK_GRADIENT_MIX+2)),__BLK_GRADIENT_MIX	; mock a BRA.S
+	;.runOnce:			; BEWARE THE SMC !!
 
 	MOVE.W	#0,Y_HALF_SHIFT
 	MOVE.W	AUDIOCHLEV_2,D1
@@ -3196,6 +3196,18 @@ __BLK_VECTOR_SPREAD_PRE:
 	RTS
 
 __BLK_DISPERSE:
+	;## DRAW GLITCH ##
+	MOVE.W	#20*64+w/16,BLIT_SIZE
+	MOVE.W	D1,BLIT_A_MOD
+	MOVE.W	D0,BLIT_D_MOD
+
+	ADD.L	D1,GLITCHGOOD
+	MOVE.L	BGPLANE0,SCROLL_DEST
+	ADD.L	#bpl*(h-20+4),SCROLL_DEST
+	BSR.W	__BLIT_GLITCH_BAND
+	MOVE.L	GLITCHRESET,GLITCHGOOD
+	;## DRAW GLITCH ##
+
 	MOVE.W	AUDIOCHLEV_0,D1
 	LSR.W	#1,D1
 	ADD.B	#1,D1
@@ -3208,8 +3220,6 @@ __BLK_DISPERSE:
 	MOVE.L	BGPLANE0,SCROLL_SRC
 	MOVE.L	BGPLANE0,SCROLL_DEST
 	BSR.W	__SCROLL_Y_HALF
-	MOVE.W	#0,BLIT_A_MOD
-	MOVE.W	#0,BLIT_D_MOD
 	RTS
 
 __BLK_VECTOR:
