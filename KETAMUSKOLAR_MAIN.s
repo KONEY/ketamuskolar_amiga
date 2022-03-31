@@ -33,7 +33,7 @@ VarTimesTrig MACRO				; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(An
 	asr.l #TrigShift,\3
 	ENDM
 ;********** Demo **********			; Demo-specific non-startup code below.
-Demo:	MOVE.W	#41,MED_START_POS		; skip to pos# after first block
+Demo:	;MOVE.W	#41,MED_START_POS		; skip to pos# after first block
 	Code:				; a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
@@ -3197,15 +3197,14 @@ __BLK_VECTOR_SPREAD_PRE:
 
 __BLK_DISPERSE:
 	;## DRAW GLITCH ##
-	MOVE.W	#20*64+w/16,BLIT_SIZE
-	MOVE.W	D1,BLIT_A_MOD
-	MOVE.W	D0,BLIT_D_MOD
+	MOVE.W	#17*64+w/16,BLIT_SIZE
+	MOVE.W	#2,BLIT_A_MOD
+	MOVE.W	#-2,BLIT_D_MOD
 
 	ADD.L	D1,GLITCHGOOD
 	MOVE.L	BGPLANE0,SCROLL_DEST
-	ADD.L	#bpl*(h-20+4),SCROLL_DEST
+	ADD.L	#bpl*(h-16+6),SCROLL_DEST
 	BSR.W	__BLIT_GLITCH_BAND
-	MOVE.L	GLITCHRESET,GLITCHGOOD
 	;## DRAW GLITCH ##
 
 	MOVE.W	AUDIOCHLEV_0,D1
