@@ -108,4 +108,4 @@ WaitBlitterNasty:			; IF BLITTER WORKING... WAIT!
 	MOVE.W	#$8400,DMACON	; BLIT NASTY ENABLE
 	MOVE.W	#$400,DMACON	; BLIT NASTY DISABLE
 	;MOVE.W	#$0000,$DFF180	; show rastertime left down to $12c
-	rts
+	RTS
