@@ -884,7 +884,7 @@ synth_vibrato:	move.w	trk_synvibdep(a5),d1		;get vibrato depth
 		move.w	trk_synviboffs(a5),d0		;get offset
 		lsr.w	#4,d0				;/ 16
 		and.w	#$1f,d0				;sinetable offset (0-31)
-		movea.l trk_synvibwf(a5),a0
+		movea.l	trk_synvibwf(a5),a0
 		move.b	0(a0,d0.w),d0			;get a byte
 		ext.w	d0				;to word
 		muls	d1,d0				;amplify (* depth)
@@ -1089,6 +1089,7 @@ plr_chgblock:	tst.b	nxtnoclrln-DB(a6)
 		bne.s	plr_noclrln
 		moveq	#0,d1				;clear line number
 		MOVE.B	#0,FRAME_STROBE			;RESET FRAME STROBE | KONEY
+		MOVE.W	#-1,MED_STEPSEQ_POS			;RESET STEPSEQ	| KONEY
 plr_noclrln:	tst.w	mmd_pstate(a2)			;play block or play song
 		bpl.w	plr_nonewseq			;play block only...
 		cmp.b	#'2',3(a2)			;MMD2?
@@ -3428,7 +3429,7 @@ _periodtable:
 	;IFEQ	SPLIT_RELOCS
 ;_chipzero:	dc.l	0	; move this to chip ram after SAMPLES!
 	;ENDC
-_modnum:		dc.w	0	; number of module to play
+_modnum:	dc.w	0		; number of module to play
 
 ; macros for entering offsets
 DEFWORD	MACRO
