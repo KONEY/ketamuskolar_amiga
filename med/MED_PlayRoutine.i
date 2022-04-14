@@ -1953,7 +1953,7 @@ voltest:		cmp.b	#64,d1
 		ble.s	novolover64
 		moveq	#64,d1
 novolover64:	move.b	d1,trk_prevvol(a5)
-volsl_rts:		rts
+volsl_rts:	rts
 ;	**************************************** Effect 0D/0A ***
 fx_0a:
 fx_0d:		tst.b	d3
