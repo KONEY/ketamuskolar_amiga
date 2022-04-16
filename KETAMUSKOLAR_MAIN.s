@@ -14,7 +14,6 @@ hband		EQU 10		; lines reserved for textscroller
 hblit		EQU h/2		; -hband	; size of blitter op without textscroller
 wblit		EQU w/2/16*2
 vbarwbpl		EQU w/10/16
-;X_SPLIT_SLICE	EQU 18
 X_SPLIT2X_SLICE	EQU 13
 TXT_FRMSKIP 	EQU 4
 MARGINX		EQU w/2
@@ -30,14 +29,14 @@ VarTimesTrig MACRO				; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(An
 	asr.l #TrigShift,\3
 	ENDM
 ;********** Demo **********			; Demo-specific non-startup code below.
-Demo:	MOVE.W	#66,MED_START_POS		; skip to pos# after first block
+Demo:	;MOVE.W	#15,MED_START_POS		; skip to pos# after first block
 	Code:				; a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
 	MOVE.W	#%1110000000100000,INTENA
 	MOVE.W	#%1000001111000000,DMACON	; BIT10=BLIT NASTY
 	BSR	WaitBlitter
-
+	BSR.W	__POINT_SPRITES	; #### Point sprites
 	;########################
 	LEA	COPPER\.BplPtrs,A1
 	LEA	HEADER,A0
@@ -54,7 +53,6 @@ Demo:	MOVE.W	#66,MED_START_POS		; skip to pos# after first block
 	BSR.W	PokePtrs
 	MOVE.L	#PLANE0,A0
 	BSR.W	PokePtrs
-	;MOVE.L	#PLANE1,A0
 	LEA	PLANE3,A0
 	SUB.L	#bpl+2,A0
 	BSR.W	PokePtrs
@@ -156,6 +154,8 @@ Demo:	MOVE.W	#66,MED_START_POS		; skip to pos# after first block
 ;********************  main loop  ********************
 MainLoop:
 	BSR.W	__SET_MED_VALUES
+	BSR.W	__FILLANDSCROLLTXT
+
 	SONG_BLOCKS_EVENTS:
 	;* FOR TIMED EVENTS ON BLOCK ****
 	MOVE.W	MED_SONG_POS,D5
@@ -165,7 +165,6 @@ MainLoop:
 	JSR	(A4)			; EXECUTE SUBROUTINE BLOCK#
 	;*--- main loop end ---*
 
-	BSR.W	__FILLANDSCROLLTXT
 	BSR.S	WaitRasterCopper		; is below the Display Window.
 
 	;BTST	#6,$BFE001
@@ -690,6 +689,56 @@ __FILLANDSCROLLTXT:
 	MOVE.L	A2,BLTAPTH
 	MOVE.L	A4,BLTDPTH
 	MOVE.W	#6*64+(w*2+16)/16,BLTSIZE
+	RTS
+
+__POINT_SPRITES:
+	LEA	COPPER\.SpritePointers,A1
+	MOVE.L	#0,D0		; sprite 0
+	MOVE.W	D0,6(A1)
+	SWAP	D0
+	MOVE.W	D0,2(A1)
+
+	ADDQ.W	#8,A1
+	MOVE.L	#0,D0		; sprite 1
+	MOVE.W	D0,6(A1)
+	SWAP	D0
+	MOVE.W	D0,2(A1)
+
+	ADDQ.W	#8,A1
+	MOVE.L	#0,D0		; sprite 2
+	MOVE.W	D0,6(A1)
+	SWAP	D0
+	MOVE.W	D0,2(A1)
+
+	ADDQ.W	#8,A1
+	MOVE.L	#0,D0		; sprite 3
+	MOVE.W	D0,6(A1)
+	SWAP	D0
+	MOVE.W	D0,2(A1)
+
+	ADDQ.W	#8,A1
+	MOVE.L	#0,D0		; sprite 4
+	MOVE.W	D0,6(A1)
+	SWAP	D0
+	MOVE.W	D0,2(A1)
+
+	ADDQ.W	#8,A1
+	MOVE.L	#0,D0		; sprite 5
+	MOVE.W	D0,6(A1)
+	SWAP	D0
+	MOVE.W	D0,2(A1)
+
+	ADDQ.W	#8,A1
+	MOVE.L	#0,D0		; sprite 6
+	MOVE.W	D0,6(A1)
+	SWAP	D0
+	MOVE.W	D0,2(A1)
+
+	ADDQ.W	#8,A1
+	MOVE.L	#0,D0		; sprite 7
+	MOVE.W	D0,6(A1)
+	SWAP	D0
+	MOVE.W	D0,2(A1)
 	RTS
 
 __BLIT_GLITCH_SLICE:
@@ -2058,10 +2107,9 @@ __BLK_BEGIN3:
 	BSR.W	__BLIT_GLITCH_BAND
 	;## DRAW GLITCH ##
 
-	MOVE.W	#2,Y_HALF_SHIFT
 	MOVE.W	AUDIOCHLEV_2,BLIT_A_MOD
 	MOVE.W	AUDIOCHLEV_2,BLIT_D_MOD
-
+	MOVE.W	#2,Y_HALF_SHIFT
 	MOVE.B	#-1,Y_HALF_DIR
 	MOVE.L	#PLANE0,A3
 	MOVE.L	#PLANE0,A4
@@ -2306,6 +2354,7 @@ __BLK_0:
 	;MOVE.L	#(GREEN_REG<<16)|CYAN_VAL,COPPER\.Palette+$14
 
 	MOVE.B	#$F,Y_SHIFT_LFO_MAX
+	;MOVE.B	#$F,Y_SHIFT_LFO_MIN
 	MOVE.B	#1,Y_LFO_INVERT_DIR
 	BSR.W	__Y_SHIFT_LFO
 
@@ -2729,8 +2778,7 @@ __BLK_VECTSPRD_GRAD:
 	BSR.W	__UPDATE_ANGLE
 
 	TST.W	AUDIOCHLEV_1
-	CLR.W	$100				; DEBUG | w 0 100 2
-	BNE.S	.noGradient
+	BEQ.S	.noGradient
 
 	MOVE.W	MED_STEPSEQ_POS,D0
 	CMP.W	#2,D0
@@ -2740,6 +2788,10 @@ __BLK_VECTSPRD_GRAD:
 	;CMP.W	#14,D0
 	;BEQ.W	__BLK_GRADIENT_MIX
 	.noGradient:
+
+	MOVE.W	MED_SONG_POS,D0
+	CMP.W	#69,D0		; THIS CHEK ONLY FOR LAST PART :)
+	BGE.W	__BLK_PLASMA
 
 	BRA.W	__BLK_DIAG_FLUID_NOGLITCH
 	RTS
@@ -3044,8 +3096,6 @@ TIMELINE:	DC.L __BLK_BEGIN,__BLK_BEGIN_MID,__BLK_BEGIN_PRE,__BLK_BEGIN		;1
 	DC.L __BLK_VECTSPRD_GRAD,__BLK_VECTSPRD_GRAD,__BLK_VECTSPRD_GRAD,__BLK_VECTSPRD_GRAD
 	DC.L __BLK_VECTSPRD_GRAD,__BLK_VECTSPRD_GRAD,__BLK_VECTSPRD_GRAD,__BLK_VECTSPRD_GRAD
 
-	DC.L __BLK_DIAG_RESET,__BLK_DIAG_RESET,__BLK_DIAG_RESET,__BLK_DIAG_RESET		;4 25: DE-LI-RI-O!
-
 MED_SONG_POS:	DC.W 0	; Well the position...
 MED_BLOCK_LINE:	DC.W 0	; Line of block
 AUDIOCHLEV_0:	DC.W 0	; MED VALUES
@@ -3058,7 +3108,7 @@ X_SHIFT_LFO_MIN:	DC.B -1
 X_SHIFT_LFO_MAX:	DC.B 15
 X_LFO_INVERT_DIR:	DC.B 0
 
-Y_SHIFT_LFO:	DC.B -1
+Y_SHIFT_LFO:	DC.B 1
 Y_SHIFT_LFO_MIN:	DC.B -1
 Y_SHIFT_LFO_MAX:	DC.B 15
 Y_LFO_INVERT_DIR:	DC.B 0
