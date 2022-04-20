@@ -53,6 +53,6 @@
  DC.B "REMEMBER TO SURF TO WWW.KONEY.ORG FOR MORE AMIGA AND TECHNO STUFF AND TO MY GIT-HUB "
  DC.B "FOR THE SOURCE CODE OF MY PRODZ! "
  DC.B "                     .EOF                                                    "
- ;DC.B "                                                      "
+ DC.B "                                                                             "
  EVEN
 _TEXT:
