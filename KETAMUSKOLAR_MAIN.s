@@ -29,7 +29,7 @@ VarTimesTrig MACRO				; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(An
 	asr.l #TrigShift,\3
 	ENDM
 ;********** Demo **********			; Demo-specific non-startup code below.
-Demo:	;MOVE.W	#60,MED_START_POS		; skip to pos# after first block
+Demo:	;MOVE.W	#70,MED_START_POS		; skip to pos# after first block
 	Code:				; a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
@@ -3131,8 +3131,8 @@ __BLK_END:
 	MOVE.W	MED_BLOCK_LINE,D1
 	CMP.W	#62,D1
 	BNE.S	.dontResetAudio
-	MOVE.L	#$0,MED_TRK_0_COUNT	; AUDIO NEEDS TO BE RESET
-	MOVE.L	#$0,MED_TRK_2_COUNT	; OR AFTER SOMETIMES GURU :)
+	MOVE.L	#$E000E,MED_TRK_0_COUNT	; AUDIO NEEDS TO BE RESET
+	MOVE.L	#$E000E,MED_TRK_2_COUNT	; OR AFTER SOMETIMES GURU :)
 	.dontResetAudio:
 
 	MOVE.W	Y_EASYING,D1
