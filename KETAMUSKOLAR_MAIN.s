@@ -22,21 +22,21 @@ TrigShift		EQU 7
 PXLSIDE		EQU 16
 Z_Shift		EQU PXLSIDE*5/2	; 5x5 obj
 ;*************
-VarTimesTrig MACRO				; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(Angle)^(TrigShift*2)
+VarTimesTrig MACRO			; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(Angle)^(TrigShift*2)
 	move.l \1,\3
 	muls \2,\3
-	asr.l #TrigShift,\3			; left >>= TrigShift
+	asr.l #TrigShift,\3		; left >>= TrigShift
 	asr.l #TrigShift,\3
 	ENDM
-;********** Demo **********			; Demo-specific non-startup code below.
-Demo:	;MOVE.W	#70,MED_START_POS		; skip to pos# after first block
+;********** Demo **********		; Demo-specific non-startup code below.
+Demo:	;MOVE.W	#22,MED_START_POS	; skip to pos# after first block
 	Code:				; a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
 	MOVE.W	#%1110000000100000,INTENA
 	MOVE.W	#%1000001111000000,DMACON	; BIT10=BLIT NASTY
 	BSR	WaitBlitter
-	BSR.W	__POINT_SPRITES	; #### Point sprites
+	BSR.W	__POINT_SPRITES		; #### Point sprites
 	;########################
 	LEA	COPPER\.BplPtrs,A1
 	LEA	HEADER,A0
@@ -159,17 +159,18 @@ MainLoop:
 	SONG_BLOCKS_EVENTS:
 	;* FOR TIMED EVENTS ON BLOCK ****
 	MOVE.W	MED_SONG_POS,D5
-	LSL.W	#2,D5			; CALCULATES OFFSET (OPTIMIZED)
+	LSL.W	#2,D5		; CALCULATES OFFSET (OPTIMIZED)
 	LEA	TIMELINE,A3
-	MOVE.L	(A3,D5),A4		; THANKS HEDGEHOG!!
-	JSR	(A4)			; EXECUTE SUBROUTINE BLOCK#
+	MOVE.L	(A3,D5),A4	; THANKS HEDGEHOG!!
+	JSR	(A4)		; EXECUTE SUBROUTINE BLOCK#
 	;*--- main loop end ---*
 
-	BSR.S	WaitRasterCopper		; is below the Display Window.
+	BSR.S	WaitRasterCopper	; is below the Display Window.
 
-	ENDING_CODE:
+	IFEQ	START_POS
 	BTST	#6,$BFE001
 	BEQ.S	.quit		; then loop
+	ENDC
 	BTST	#2,$DFF016	; POTINP - RMB pressed?
 	BNE.W	MainLoop		; then loop
 	.quit:
@@ -336,7 +337,7 @@ __BLIT_VECTORS:
 	;*--- main loop end ---*
 	RTS
 
-Drawline:	; * scelta ottante
+Drawline:				; * scelta ottante
 	sub.w	d0,d2		; D2=X2-X1
 	bmi.s	.DRAW4		; se negativo salta, altrimenti D2=DiffX
 	sub.w	d1,d3		; D3=Y2-Y1
@@ -384,11 +385,6 @@ Drawline:	; * scelta ottante
 	.DRAW7:
 	exg.l	d2,d3		; scambia D2 e D3, in modo che D3=DY e D2=DX
 	moveq	#$0c,d5		; codice ottante
-
-	; Quando l'esecuzione raggiunge questo punto, abbiamo:
-	; D2 = DX
-	; D3 = DY
-	; D5 = codice ottante
 
 	.DRAWL:
 	;mulu.w	#bypl,d1		; offset Y
@@ -473,7 +469,7 @@ __DBLBMP:
 	LEA	KONEY,A1
 	MOVE.L	A4,A5
 	MOVE.W	#$9,D6
-	.DBLBMP:				; LOGICA PER RADDOPPIARE LA BITMAP
+	.DBLBMP:			; LOGICA PER RADDOPPIARE LA BITMAP
 	MOVE.W	(A1)+,D0		
 	;****************
 	CLR.L	D1
@@ -488,7 +484,7 @@ __DBLBMP:
 	BSET	D2,D1
 	.NEXT:
 	MOVEM.L	D0-D1,-(SP)
-	BSR.W	WaitEOF			; TO SLOW DOWN :)
+	BSR.W	WaitEOF		; TO SLOW DOWN :)
 	MOVEM.L	(SP)+,D0-D1
 	DBRA	D7,.LOOP
 	;*****************
@@ -506,17 +502,17 @@ __DBLBMP:
 
 __DITHER_PLANE:
 	MOVE.L	A4,A4
-	MOVE.W	#he-1,D4			; QUANTE LINEE
+	MOVE.W	#he-1,D4		; QUANTE LINEE
 	MOVE.L	#$AAAAAAAA,D5
-	.outerloop:			; NUOVA RIGA
-	MOVE.W	#(bypl/4)-1,D6		; RESET D6
+	.outerloop:		; NUOVA RIGA
+	MOVE.W	#(bypl/4)-1,D6	; RESET D6
 	NOT.L	D5
-	.innerloop:			; LOOP KE CICLA LA BITMAP
+	.innerloop:		; LOOP KE CICLA LA BITMAP
 	MOVE.L	D5,(A4)+
 	DBRA	D6,.innerloop
 	TST.W	D0
 	BEQ.S	.noWait
-	BSR.W	WaitEOF			; TO SLOW DOWN :)
+	BSR.W	WaitEOF		; TO SLOW DOWN :)
 	.noWait:
 	DBRA	D4,.outerloop
 	RTS
@@ -584,7 +580,7 @@ __GRADIENT_PLANE:
 	MOVE.W	#0,BLTDMOD		; BLTDMOD
 	MOVE.L	A3,BLTAPTH		; BLTAPT
 	MOVE.L	A4,BLTDPTH
-	;MOVE.W	#he*64+wi/16,BLTSIZE		; BLTSIZE
+	;MOVE.W	#he*64+wi/16,BLTSIZE	; BLTSIZE
 	.skip:
 	; ## BLIT FIX ####
 	RTS
@@ -772,7 +768,7 @@ __BLIT_GLITCH_SLICE:
 
 	MOVE.L	A3,BLTAPTH		; BLTAPT
 	MOVE.L	A4,BLTDPTH
-	MOVE.W	#he*64+32/16,BLTSIZE		; BLTSIZE
+	MOVE.W	#he*64+32/16,BLTSIZE	; BLTSIZE
 	; ## MAIN BLIT ####
 	RTS
 
@@ -809,7 +805,7 @@ __BLIT_GLITCH_TILE:
 
 	; ## MAIN BLIT ####
 	.waitData:
-	;ADD.L	#bypl*2,A3			; GO TO NEXT
+	;ADD.L	#bypl*2,A3		; GO TO NEXT
 	LEA	80(A3),A3			; OPTIMIZED
 	TST.L	(A3)			; IF LINE EMPTY
 	BEQ.S	.waitData			
@@ -957,7 +953,7 @@ __SCROLL_Y_HALF:
 
 	MOVE.L	A3,BLTAPTH		; BLTAPT SRC
 	MOVE.L	A4,BLTDPTH		; DESC
-	MOVE.W	#he*64+wi/16,BLTSIZE		; BLTSIZE
+	MOVE.W	#he*64+wi/16,BLTSIZE	; BLTSIZE
 	; ## MAIN BLIT ####
 	RTS
 
@@ -1117,7 +1113,7 @@ __SCROLL_X_PROGR:
 	;MOVE.W	#0,BLTDMOD		; BLTDMOD
 	MOVE.L	A3,BLTAPTH		; BLTAPT
 	MOVE.L	A4,BLTDPTH
-	MOVE.W	#32*64+wi/16,BLTSIZE		; BLTSIZE
+	MOVE.W	#32*64+wi/16,BLTSIZE	; BLTSIZE
 
 	ADD.W	D7,A1
 	ADD.W	D7,A2
@@ -1393,7 +1389,7 @@ __SCROLL_X_Y_1_4:
 	MOVE.L	A3,BLTAPTH		; BLTAPT
 	MOVE.L	A4,BLTDPTH
 	MOVE.W	D2,BLTSIZE		; BLTSIZE
-	;MOVE.W	#he*64+wi/16,BLTSIZE		; BLTSIZE
+	;MOVE.W	#he*64+wi/16,BLTSIZE	; BLTSIZE
 	; ## MAIN BLIT ####
 	RTS
 
@@ -1412,7 +1408,7 @@ __SCROLL_X_PLASMA:
 	ADD.W	D6,D6
 	MOVE.W	(A0,D6.W),D6
 
-	MOVE.W	#bypl*he-(bypl/2)-1,D0		; OPTIMIZE
+	MOVE.W	#bypl*he-(bypl/2)-1,D0	; OPTIMIZE
 
 	ROL.W	#4,D1
 	MOVE.B	D4,D1
@@ -1576,8 +1572,8 @@ __BLK_DIAG_FLUID1:
 	BSR.W	__Y_LFO_EASYING
 	MOVE.W	Y_EASYING,Y_1_4_SHIFT	; VSHIFT
 
-	MOVE.W	#bypl/2-2,BLIT_A_MOD		; D7 HERE FOR CRAZY FX!!
-	MOVE.W	#bypl/2-2,BLIT_D_MOD		; BLTDMOD
+	MOVE.W	#bypl/2-2,BLIT_A_MOD	; D7 HERE FOR CRAZY FX!!
+	MOVE.W	#bypl/2-2,BLIT_D_MOD	; BLTDMOD
 	MOVE.W	#he/2*64+(wi/2/16)+1,D2	; BLITSIZE NOT DESC
 	
 	MOVE.L	#PLANE0,A3
@@ -1592,8 +1588,8 @@ __BLK_DIAG_FLUID1:
 	MOVE.B	D5,Y_1_4_DIR
 	MOVE.B	D5,X_1_4_DIR
 	;MOVE.B	#-1,X_1_4_DIR
-	MOVE.W	#bypl/2-2,BLIT_A_MOD		; D7 HERE FOR CRAZY FX!!
-	MOVE.W	#bypl/2-2,BLIT_D_MOD		; BLTDMOD
+	MOVE.W	#bypl/2-2,BLIT_A_MOD	; D7 HERE FOR CRAZY FX!!
+	MOVE.W	#bypl/2-2,BLIT_D_MOD	; BLTDMOD
 	MOVE.W	#he/2*64+(wi/2/16)+1,D2	; BLITSIZE NOT DESC
 
 	MOVE.L	#PLANE0+bypl*he/2-(bypl/2),A3
@@ -1619,7 +1615,7 @@ __BLK_DIAG_FLUID1:
 
 	MOVE.W	#bypl/2,BLIT_A_MOD		; D7 HERE FOR CRAZY FX!!
 	MOVE.W	#bypl/2,BLIT_D_MOD		; BLTDMOD
-	MOVE.W	#he/2*64+(wi/2/16),D2		; BLITSIZE NOT DESC
+	MOVE.W	#he/2*64+(wi/2/16),D2	; BLITSIZE NOT DESC
 
 	MOVE.L	#PLANE0+bypl/2,A3
 	MOVE.L	A3,A4
@@ -1634,7 +1630,7 @@ __BLK_DIAG_FLUID1:
 	MOVE.B	D5,X_1_4_DIR
 	MOVE.W	#bypl/2,BLIT_A_MOD		; D7 HERE FOR CRAZY FX!!
 	MOVE.W	#bypl/2,BLIT_D_MOD		; BLTDMOD
-	MOVE.W	#he/2*64+(wi/2/16),D2		; BLITSIZE NOT DESC
+	MOVE.W	#he/2*64+(wi/2/16),D2	; BLITSIZE NOT DESC
 
 	MOVE.L	#PLANE0+bypl*(he/2),A3
 	MOVE.L	A3,A4
@@ -1666,8 +1662,8 @@ __BLK_DIAG_FLUID_NOGLITCH:
 	BNE.W	.oddFrame
 	MOVE.B	#1,FRAME_STROBE
 
-	MOVE.W	#bypl/2-2,BLIT_A_MOD		; D7 HERE FOR CRAZY FX!!
-	MOVE.W	#bypl/2-2,BLIT_D_MOD		; BLTDMOD
+	MOVE.W	#bypl/2-2,BLIT_A_MOD	; D7 HERE FOR CRAZY FX!!
+	MOVE.W	#bypl/2-2,BLIT_D_MOD	; BLTDMOD
 	MOVE.W	#he/2*64+(wi/2/16)+1,D2	; BLITSIZE NOT DESC
 
 	MOVE.L	#PLANE0+bypl/2,A3
@@ -1683,8 +1679,8 @@ __BLK_DIAG_FLUID_NOGLITCH:
 	NEG.B	D5
 	MOVE.B	D5,Y_1_4_DIR
 	MOVE.B	D5,X_1_4_DIR
-	MOVE.W	#bypl/2-2,BLIT_A_MOD		; D7 HERE FOR CRAZY FX!!
-	MOVE.W	#bypl/2-2,BLIT_D_MOD		; BLTDMOD
+	MOVE.W	#bypl/2-2,BLIT_A_MOD	; D7 HERE FOR CRAZY FX!!
+	MOVE.W	#bypl/2-2,BLIT_D_MOD	; BLTDMOD
 	MOVE.W	#he/2*64+(wi/2/16)+1,D2	; BLITSIZE NOT DESC
 
 	MOVE.L	#PLANE0+bypl*(he/2),A3
@@ -1717,7 +1713,7 @@ __BLK_DIAG_FLUID_NOGLITCH:
 	MOVE.B	D5,X_1_4_DIR
 	MOVE.W	#bypl/2,BLIT_A_MOD		; D7 HERE FOR CRAZY FX!!
 	MOVE.W	#bypl/2,BLIT_D_MOD		; BLTDMOD
-	MOVE.W	#he/2*64+(wi/2/16),D2		; BLITSIZE NOT DESC
+	MOVE.W	#he/2*64+(wi/2/16),D2	; BLITSIZE NOT DESC
 
 	MOVE.L	#PLANE0+bypl*he/2-(bypl/2),A3
 	MOVE.L	A3,A4
@@ -1731,19 +1727,14 @@ __BLK_DIAG_FLUID_NOGLITCH:
 
 __BLK_PLASMA:
 	; # RESET ONCE ; BEWARE THE SMC !!
-	;BSR.W	__BLK_RESET
-	MOVE.B	X_FULL_DIR,PLASMA_DIR	; INIT
+	MOVE.W	#3,X_FULL_SHIFT
+	MOVE.W	#5,Y_FULL_SHIFT
+	MOVE.B	#1,X_FULL_DIR
+	MOVE.B	#1,PLASMA_DIR	; INIT
 	MOVE.W	#$6000|(.runOnce-(__BLK_PLASMA+2)),__BLK_PLASMA	; mock a BRA.S
 	.runOnce:
 
-	TST.B	PLN3_IS_WIPED
-	BNE.S	.dontWipe
-	MOVE.L	#PLANE3,A1		; A4
-	BSR.W	__WIPE_PLANE
-	MOVE.B	#1,PLN3_IS_WIPED
-	.dontWipe:
-
-	MOVE.B	#9,X_SHIFT_LFO_MAX
+	MOVE.B	#10,X_SHIFT_LFO_MAX
 	MOVE.B	#0,X_SHIFT_LFO_MIN
 	MOVE.B	#0,X_LFO_INVERT_DIR
 	BSR.W	__X_SHIFT_LFO
@@ -1805,6 +1796,13 @@ __BLK_PLASMA:
 	MOVE.B	D5,PLASMA_DIR
 	MOVE.B	D5,X_FULL_DIR
 	.noChangeDir:
+
+	TST.B	PLN3_IS_WIPED
+	BNE.S	.dontWipe
+	MOVE.L	#PLANE3,A1		; A4
+	BSR.W	__WIPE_PLANE
+	MOVE.B	#1,PLN3_IS_WIPED
+	.dontWipe:
 	RTS
 
 __BLK_KICK:
@@ -1911,23 +1909,6 @@ __BLK_SHUFFLE:
 	BSR.W	__SCROLL_Y_1_4
 	.evenFrame:
 	RTS
-
-	;__BLK_RESET:
-	;MOVE.W	#0,X_SHIFT
-	;MOVE.L	#DITHERPLANE,A3
-	;MOVE.L	#PLANE1,A4
-	;MOVE.B	#1,X_DIR
-	;BSR.W	__SCROLL_X
-	;MOVE.B	#0,X_DIR
-	;BSR.W	__SCROLL_X
-	;;MOVE.L	GLITCHRESET,A3
-	;;MOVE.L	#PLANE0,A4
-	;;MOVE.B	#1,X_DIR
-	;;BSR.W	__SCROLL_X
-	;;MOVE.B	#0,X_DIR
-	;;BSR.W	__SCROLL_X
-	;;MOVE.B	#1,FRAME_STROBE
-	;RTS
 
 __BLK_GRADIENT_MIX:
 	;;### NEW BPL POINTERS ####
