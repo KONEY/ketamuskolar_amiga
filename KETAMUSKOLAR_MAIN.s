@@ -29,7 +29,7 @@ VarTimesTrig MACRO			; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(Ang
 	asr.l #TrigShift,\3
 	ENDM
 ;********** Demo **********		; Demo-specific non-startup code below.
-Demo:	;MOVE.W	#60,MED_START_POS	; skip to pos# after first block
+Demo:	;MOVE.W	#57,MED_START_POS	; skip to pos# after first block
 	Code:				; a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
@@ -2430,7 +2430,13 @@ __BLK_5:
 
 __BLK_VECTOR_SPREAD:
 	;### NEW BPL POINTERS ####
-	LEA	COPPER\.BplPtrs2+24,A1
+	LEA	COPPER\.BplPtrs2,A1
+	LEA	GRADIENTPLANE,A0
+	BSR.W	PokePtrs
+	LEA	PLANE1,A0
+	BSR.W	PokePtrs
+	LEA	PLANE0,A0
+	BSR.W	PokePtrs
 	LEA	GRADIENTPLANENEG+40,A0
 	BSR.W	PokePtrs
 	;### NEW BPL POINTERS ####
@@ -2575,10 +2581,18 @@ __BLK_EXPLODE:
 
 __BLK_VECTOR_SPREAD2:
 	;### NEW BPL POINTERS ####
-	;LEA	COPPER\.BplPtrs2+24,A1
-	;LEA	PLANE3-42,A0
-	;BSR.W	PokePtrs
+	LEA	COPPER\.BplPtrs2,A1
+	LEA	GRADIENTPLANE,A0
+	BSR.W	PokePtrs
+	LEA	PLANE0,A0
+	BSR.W	PokePtrs
+	LEA	PLANE1,A0
+	BSR.W	PokePtrs
+	LEA	GRADIENTPLANENEG-40,A0
+	BSR.W	PokePtrs
 	;### NEW BPL POINTERS ####
+	MOVE.W	#$6000|(.runOnce-(__BLK_VECTOR_SPREAD2+2)),__BLK_VECTOR_SPREAD2	; mock a BRA.S
+	.runOnce:			; BEWARE THE SMC !!
 	;## COLORS SHIFTS ##
 	LEA	COPPER\.Palette,A2
 	LEA	COLSEQ_RESET,A1
@@ -2587,8 +2601,8 @@ __BLK_VECTOR_SPREAD2:
 	ENDR
 	;## COLORS SHIFTS ##
 	ADDI.L	#26,VECT_PTR	; RESTORE COORDZ
-	MOVE.W	#$6000|(.runOnce-(__BLK_VECTOR_SPREAD2+2)),__BLK_VECTOR_SPREAD2	; mock a BRA.S
-	.runOnce:			; BEWARE THE SMC !!
+	MOVE.W	#$6000|(.runOnce2-(.runOnce+2)),.runOnce	; mock a BRA.S
+	.runOnce2:			; BEWARE THE SMC !!
 
 	TST.W	MED_STEPSEQ_POS
 	BNE.S	.noResetKick
@@ -2701,6 +2715,9 @@ __BLK_VECTOR_SPREAD_PRE:
 
 __BLK_DIAG_RESET:
 	;### NEW BPL POINTERS ####
+	LEA	COPPER\.BplPtrs2,A1
+	LEA	GRADIENTPLANENEG,A0
+	BSR.W	PokePtrs
 	LEA	COPPER\.BplPtrs2+24,A1
 	LEA	PLANE3-40,A0
 	BSR.W	PokePtrs
@@ -2853,11 +2870,11 @@ __BLK_DISPERSE:
 
 __BLK_PLASMA_VECT:
 	;### NEW BPL POINTERS ####
-	LEA	COPPER\.BplPtrs2+24,A1
-	LEA	GRADIENTPLANE+40,A0
-	BSR.W	PokePtrs
+	;LEA	COPPER\.BplPtrs2+24,A1
+	;LEA	GRADIENTPLANE+40,A0
+	;BSR.W	PokePtrs
 	;### NEW BPL POINTERS ####
-	MOVE.W	#$6000|(.runOnce-(__BLK_PLASMA_VECT+2)),__BLK_PLASMA_VECT	; mock a BRA.S
+	;MOVE.W	#$6000|(.runOnce-(__BLK_PLASMA_VECT+2)),__BLK_PLASMA_VECT	; mock a BRA.S
 	.runOnce:				; BEWARE THE SMC !!
 
 	MOVE.L	#PLANE3,A1	; A4
