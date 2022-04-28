@@ -22,14 +22,14 @@ TrigShift		EQU 7
 PXLSIDE		EQU 16
 Z_Shift		EQU PXLSIDE*5/2	; 5x5 obj
 ;*************
-VarTimesTrig MACRO			; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(Angle)^(TrigShift*2)
-	move.l \1,\3
-	muls \2,\3
-	asr.l #TrigShift,\3		; left >>= TrigShift
-	asr.l #TrigShift,\3
-	ENDM
+VarTimesTrig	MACRO		; 3 = 1 * 2, where 2 is cos(Angle)^(TrigShift*2) or sin(Angle)^(TrigShift*2)
+	move.l	\1,\3
+	muls	\2,\3
+	asr.l	#TrigShift,\3	; left >>= TrigShift
+	asr.l	#TrigShift,\3
+		ENDM
 ;********** Demo **********		; Demo-specific non-startup code below.
-Demo:	;MOVE.W	#57,MED_START_POS	; skip to pos# after first block
+Demo:	;MOVE.W	#58,MED_START_POS	; skip to pos# after first block
 	Code:				; a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
@@ -71,6 +71,7 @@ Demo:	;MOVE.W	#57,MED_START_POS	; skip to pos# after first block
 	MOVE.L	#COPPER,COP1LC
 
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
+	BSR.W	__POINT_SPRITES		; # Point sprites AGAIN
 	MOVE.L	#$00000000,BLTCON0
 	MOVE.W	BLIT_Y_MASK,BLTAFWM		; THEY'LL NEVER
 	MOVE.W	BLIT_X_MASK,BLTALWM		; CHANGE
@@ -2267,8 +2268,8 @@ __BLK_0_POST:
 	LEA	COPPER\.BplPtrs2,A1
 	MOVE.L	#PLANE0,A0
 	BSR.W	PokePtrs
-	LEA	8(A1),A1
-	;LEA	COPPER\.BplPtrs2+16,A1
+	;LEA	8(A1),A1
+	LEA	COPPER\.BplPtrs2+16,A1
 	;MOVE.L	#PLANE0,A0
 	;ADD.L	#bypl,A0
 	LEA	40(A0),A0		; OPT
@@ -2602,7 +2603,7 @@ __BLK_VECTOR_SPREAD2:
 	;## COLORS SHIFTS ##
 	ADDI.L	#26,VECT_PTR	; RESTORE COORDZ
 	MOVE.W	#$6000|(.runOnce2-(.runOnce+2)),.runOnce	; mock a BRA.S
-	.runOnce2:			; BEWARE THE SMC !!
+	.runOnce2:		
 
 	TST.W	MED_STEPSEQ_POS
 	BNE.S	.noResetKick
@@ -3140,8 +3141,7 @@ __BLK_END:
 	RTS
 
 ;********** Fastmem Data **********
-TIMELINE:	
-	DC.L __BLK_BEGIN,__BLK_BEGIN_MID,__BLK_BEGIN_PRE,__BLK_BEGIN		;1
+TIMELINE:	DC.L __BLK_BEGIN,__BLK_BEGIN_MID,__BLK_BEGIN_PRE,__BLK_BEGIN		;1
 	DC.L __BLK_BEGIN3,__BLK_BEGIN3,__BLK_BEGIN3,__BLK_BEGIN3_PRE		;4 4: METAL_KICK1
 	DC.L __BLK_BEGIN4_POST,__BLK_BEGIN4,__BLK_BEGIN4,__BLK_BEGIN4		;8 8: BIG_KICK_BEGIN
 	DC.L __BLK_BEGIN4,__BLK_BEGIN4,__BLK_BEGIN4,__BLK_BEGIN4_PRE		;12 8: BIG_KICK_BEGIN
